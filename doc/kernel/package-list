@@ -1,0 +1,11 @@
+nachos
+nachos.kernel
+nachos.kernel.devices
+nachos.kernel.devices.test
+nachos.kernel.filesys
+nachos.kernel.filesys.test
+nachos.kernel.threads
+nachos.kernel.threads.test
+nachos.kernel.userprog
+nachos.kernel.userprog.test
+nachos.util
