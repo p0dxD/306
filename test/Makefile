@@ -12,21 +12,21 @@
 
 # Change the following to point to where you have the MIPS cross-compiler
 # installed.
-GCCDIR = /cse306/mips-gcc/
+GCCDIR = /usr/local/gcc-3.2.2_ppc_cross_mips-coff/
 
 # Change the following to point to where you have Java executables installed.
-JAVADIR = 
+JAVADIR = /usr/bin/
 
 # Uncomment the following when running on Windows.
-JAVA= $(JAVADIR)java -classpath '..'
+#JAVA= $(JAVADIR)java -classpath '..'
 
 # Uncomment the following when running on Unix.
-#JAVA= $(JAVADIR)java -classpath '..'
+JAVA= $(JAVADIR)java -classpath '..'
 
 CC = $(GCCDIR)gcc
 AS = $(GCCDIR)as
 LD = $(GCCDIR)ld
-CPP = $(GCCDIR)cpp
+CPP = $(GCCDIR)cpp0
 
 COFF2NOFF = $(JAVA) nachos.noff.Coff2Noff
 
