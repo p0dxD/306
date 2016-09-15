@@ -35,4 +35,7 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-machine.jar
+
+# Source given to us #
+######################
+*.jar
