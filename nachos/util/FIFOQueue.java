@@ -11,3 +11,4 @@ package nachos.util;
 public class FIFOQueue<T> extends java.util.LinkedList<T> implements Queue<T> {
 
 }
+ 
