@@ -10,5 +10,6 @@ package nachos.util;
 
 @SuppressWarnings("serial")
 public class FIFOQueue<T> extends java.util.LinkedList<T> implements Queue<T> {
-    
+
 }
+ 

@@ -1,0 +1,5 @@
+I had to modify something else in the Makefile inside test in order for the 
+halt program to be compiled. It was looking for ccp0 and the makefile 
+CPP = $(GCCDIR)cpp0 was CPP = $(GCCDIR)cpp
+without that change it didn't compile as it was looking for that specific file
+I don't know the difference between cpp and cpp0 as far as what they do
