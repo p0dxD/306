@@ -153,7 +153,7 @@ public class Nachos implements Runnable {
       // under the control of the Nachos scheduler.
       NachosThread firstThread = new NachosThread("FirstThread", new Nachos());
       scheduler = new Scheduler(firstThread);
-      
+
       // The Nachos thread we just created will begin running in the run()
       // method of this class.  The remainder of the system initialization will
       // be taken care of there, so our responsibility here is finished.
