@@ -9,15 +9,17 @@ import nachos.machine.Machine;
 import nachos.machine.Timer;
 
 public class Callout {
-    private final PriorityQueue<Long> runnablesQueue = new PriorityQueue<>();
-    private final HashMap<Long, Runnable> scheduledEvents = new HashMap<>();
-    private static Timer timer;
+    private static final PriorityQueue<Long> runnablesQueue = new PriorityQueue<>();
+    private static final HashMap<Long, Runnable> scheduledEvents = new HashMap<>();
+    public static Timer timer;
     private static int currentTime;
+    
     public Callout(){
 	timer = Machine.getTimer(0);
 	timer.setHandler(new TimerInterrupt(timer));
 	timer.start();
     }
+    
     /**
      * Schedule a callout to occur at a specified number of
      * ticks in the future.
@@ -51,13 +53,22 @@ public class Callout {
 	public TimerInterrupt(Timer timer){
 	    this.timer = timer;
 	}
+	
 	@Override
 	public void handleInterrupt() {
 	    // TODO Auto-generated method stub
 	    currentTime += 100;
-	    ru
+	    Long nextWakeTime = runnablesQueue.peek();
 	    
-	    
+	    if(nextWakeTime == null){
+		Callout.timer.stop();
+	    }
+	    if(nextWakeTime != null && nextWakeTime <= currentTime){
+		System.out.println("handleInterrupt():" + nextWakeTime);
+		Runnable event = scheduledEvents.get(nextWakeTime);
+		runnablesQueue.poll(); // remove from the queue.
+	    }
+
 	}
 	
     }
