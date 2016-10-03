@@ -123,8 +123,8 @@ public class Nachos implements Runnable {
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
 	
-	CalloutTest.start();
 	
+	CalloutTest.start();
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility
 	// of waiting for all other threads to terminate and then shutting
@@ -133,6 +133,7 @@ public class Nachos implements Runnable {
 	// started, Nachos will not shut down by itself because there is
 	// no way to tell what a future interrupt might cause to happen!
 	scheduler.finishThread();
+
     }
 
   /**

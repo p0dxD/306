@@ -354,7 +354,35 @@ public class Scheduler {
 	// Interrupts will be re-enabled when the next thread runs or the
 	// current CPU goes idle.
     }
+    /**
+     * Causes the calling thread to relinquish the CPU
+     * @param ticks to schedule a callout
+     */
+    public void sleepThread(int ticks){
+	//
+	System.out.println("Sleeping");
+	NachosThread currentThread = NachosThread.currentThread();
+//	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 
+	Debug.println('t', "Sleeping thread: " + currentThread.name);
+	Semaphore sem = new Semaphore("Sleeping semaphore", 0);
+	currentThread.setStatus(NachosThread.BLOCKED);
+	yieldCPU(NachosThread.BLOCKED, this.mutex);//TODO: change
+	Callout callout = new Callout();
+	callout.schedule( new Runnable(){
+
+	    @Override
+	    public void run() {
+		// TODO Auto-generated method stub
+		System.out.println("Sleeping thread for " +ticks);
+		
+		sem.V();
+	    }}, ticks);
+	System.out.println("Blocking state");
+	sem.P();
+	System.out.println("Freeing state");
+    }
+    //TODO: should a blocked state yield the CPU?
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
      * interrupt the CPU periodically (once every Timer.DefaultInterval ticks).
