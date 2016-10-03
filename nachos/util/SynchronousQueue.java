@@ -1,5 +1,6 @@
 package nachos.util;
 
+import nachos.kernel.threads.Callout;
 import nachos.kernel.threads.Semaphore;
 
 /**
@@ -28,28 +29,31 @@ import nachos.kernel.threads.Semaphore;
 public class SynchronousQueue<T> implements Queue<T> {
     private Semaphore dataSemaphore;
     private Semaphore spaceSemaphore;
-    private T head;
+    private Semaphore bufferLock;
+    private Queue<T> putOffers;
+    private Queue<T> takeOffers;
+    private Queue<T> buffer;
+    private Callout callout;
+    //Timeout return variables. 
+    private boolean status;
+    private T obj;
     
-    /*
-    private Semaphore consumerLock;
-    private Semaphore producerLock;
-    private Thread consumer;
-    private Thread producer;
-    */
+    
     
     /**
      * Initialize a new SynchronousQueue object.
      */
     public SynchronousQueue() {
 	//semaphores
-	this.dataSemaphore = new Semaphore("dataSemaphore",0);
-	this.spaceSemaphore = new Semaphore("spaceSemaphore",1);
-	this.head = null;
-	
-	/*
-	this.consumerLock = new Semaphore("consumerLock",1);
-	this.producerLock = new Semaphore("producerLock",1);
-	*/
+	dataSemaphore = new Semaphore("dataSemaphore",0);
+	spaceSemaphore = new Semaphore("spaceSemaphore",1);
+	bufferLock = new Semaphore("bufferLock",1);
+	//queues
+	putOffers = new FIFOQueue();
+	takeOffers = new FIFOQueue();
+	buffer = new FIFOQueue();
+	//callout
+	callout = new Callout();
     }
 
     /**
@@ -62,9 +66,14 @@ public class SynchronousQueue<T> implements Queue<T> {
 	if(obj == null){
 	    return false;
 	}
+	
+	bufferLock.P();
+	putOffers.offer(obj);
+	bufferLock.V();
+	
+	//update semaphores to wake up consumer threads. 
 	spaceSemaphore.P(); //wait until there is space available
-	head = obj;
-	dataSemaphore.V(); // data now available to be consumed
+	dataSemaphore.V(); // we have data now
 	return true;
     }
 
@@ -76,10 +85,12 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     public T take() {
 	T returnObject;
-	dataSemaphore.P(); //wait until there is data available
-	returnObject = head;
-	head = null;
-	spaceSemaphore.V(); // space is now available to be consumed
+	spaceSemaphore.P(); //wait until there is space available
+	bufferLock.P();
+	returnObject = putOffers.poll();
+	bufferLock.V();	
+	dataSemaphore.V(); // we have data now
+	
 	return returnObject;
     }
 
@@ -93,8 +104,19 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     @Override
     public boolean offer(T e) {
+	bufferLock.P();
+	if(takeOffers.isEmpty()){ //no thread to take this object
+	    bufferLock.V();
+	    return false;
+	}
+	putOffers.offer(e);
+	bufferLock.V();
 	
-	return false;
+	//update semaphores to wake up consumer threads. 
+	spaceSemaphore.P(); //wait until there is space available
+	dataSemaphore.V(); // we have data now
+	
+	return true;
     }
     
     /**
@@ -105,16 +127,23 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     @Override
     public T poll() { 
-	return null;
-	/*
-	Object obj = head;
-	if(obj == null){
-	    return obj;
+	T obj; 
+	
+	bufferLock.P();
+	if(putOffers.isEmpty()){ //no thread offering an object
+	    //release lock and return immediately. 
+	    bufferLock.V();
+	    return null;
 	}
-	dataSemaphore.P();
-	spaceSemaphore.V();
+	//take out the object and return it. 
+	obj = putOffers.poll();
+	bufferLock.V();
+	
+	//update semaphores to wake up producer threads. 
+	spaceSemaphore.V(); //wait until there is space available
+	dataSemaphore.P(); // we have data now
 	return obj;
-	*/
+
     }
     
     /**
@@ -148,7 +177,22 @@ public class SynchronousQueue<T> implements Queue<T> {
      * was not added.
      */
     public boolean offer(T e, int timeout) {
-	return false;
+	callout.schedule(new Runnable(){
+	    public void run(){
+		bufferLock.P();
+		if(takeOffers.isEmpty()){
+		    status = false;
+		}else{
+		    putOffers.offer(e);
+		    status = true;
+		}
+		bufferLock.V();
+		//wake up consumer threads to take the object
+		spaceSemaphore.P();
+		dataSemaphore.V();
+	    };
+	}, timeout);
+	return status;
     }
     
     /**
@@ -161,13 +205,20 @@ public class SynchronousQueue<T> implements Queue<T> {
      * @return  the head of this queue, or null if no element is available.
      */
     public T poll(int timeout) {
-	
-	/*
-	spaceSemaphore.P(); //wait until there is space available
-	
-	dataSemaphore.V(); // data now available to be consumed
-	*/
-	return null;
+	callout.schedule(new Runnable(){
+	    public void run(){
+		bufferLock.P();
+		if(putOffers.isEmpty()){
+		    obj = null;
+		}else{
+		    obj = putOffers.poll();
+		}
+		bufferLock.V();
+		//wake up producer threads 
+		dataSemaphore.P();
+		spaceSemaphore.V();
+	    };
+	}, timeout);
+	return obj;
     }
-
 }
