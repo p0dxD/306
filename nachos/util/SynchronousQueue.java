@@ -32,7 +32,6 @@ public class SynchronousQueue<T> implements Queue<T> {
     private Semaphore bufferLock;
     private Queue<T> putOffers;
     private Queue<T> takeOffers;
-    private Queue<T> buffer;
     private Callout callout;
     //Timeout return variables. 
     private boolean status;
@@ -46,12 +45,11 @@ public class SynchronousQueue<T> implements Queue<T> {
     public SynchronousQueue() {
 	//semaphores
 	dataSemaphore = new Semaphore("dataSemaphore",0);
-	spaceSemaphore = new Semaphore("spaceSemaphore",1);
+	spaceSemaphore = new Semaphore("spaceSemaphore",0);
 	bufferLock = new Semaphore("bufferLock",1);
 	//queues
 	putOffers = new FIFOQueue();
 	takeOffers = new FIFOQueue();
-	buffer = new FIFOQueue();
 	//callout
 	callout = new Callout();
     }
@@ -68,12 +66,14 @@ public class SynchronousQueue<T> implements Queue<T> {
 	}
 	
 	bufferLock.P();
+	System.out.println("put(): adding into putOffers");
 	putOffers.offer(obj);
 	bufferLock.V();
 	
 	//update semaphores to wake up consumer threads. 
-	spaceSemaphore.P(); //wait until there is space available
 	dataSemaphore.V(); // we have data now
+	spaceSemaphore.P(); //wait until there is space available
+	System.out.println("put(): returning now");
 	return true;
     }
 
@@ -85,12 +85,14 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     public T take() {
 	T returnObject;
-	spaceSemaphore.P(); //wait until there is space available
+	System.out.println("take(): waiting on data available P()");
+	dataSemaphore.P(); // wait until there is data
 	bufferLock.P();
+	System.out.println("take(): taking from putOffers");
 	returnObject = putOffers.poll();
 	bufferLock.V();	
-	dataSemaphore.V(); // we have data now
-	
+	spaceSemaphore.V(); // we have one more space
+	System.out.println("take(): returning object "+returnObject);
 	return returnObject;
     }
 
