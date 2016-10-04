@@ -1,7 +1,9 @@
 package nachos.util;
 
+import nachos.Debug;
 import nachos.kernel.threads.Callout;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 
 /**
  * This class is patterned after the SynchronousQueue class
@@ -27,6 +29,7 @@ import nachos.kernel.threads.Semaphore;
  */
 
 public class SynchronousQueue<T> implements Queue<T> {
+    private static final SpinLock mutex = new SpinLock("callout mutex");
     private Semaphore dataSemaphore;
     private Semaphore spaceSemaphore;
     private Semaphore bufferLock;
@@ -48,8 +51,8 @@ public class SynchronousQueue<T> implements Queue<T> {
 	spaceSemaphore = new Semaphore("spaceSemaphore",0);
 	bufferLock = new Semaphore("bufferLock",1);
 	//queues
-	putOffers = new FIFOQueue();
-	takeOffers = new FIFOQueue();
+	putOffers = new FIFOQueue<>();
+	takeOffers = new FIFOQueue<>();
 	//callout
 	callout = new Callout();
     }
@@ -66,14 +69,16 @@ public class SynchronousQueue<T> implements Queue<T> {
 	}
 	
 	bufferLock.P();
-	System.out.println("put(): adding into putOffers");
+//	System.out.println("put(): adding into putOffers");
+	Debug.println('S', "Put: adding into putOffers object " + obj.hashCode());
 	putOffers.offer(obj);
 	bufferLock.V();
 	
 	//update semaphores to wake up consumer threads. 
 	dataSemaphore.V(); // we have data now
-	spaceSemaphore.P(); //wait until there is space available
-	System.out.println("put(): returning now");
+	spaceSemaphore.P(); //wait until consumer comes in takes object
+//	System.out.println("put(): returning now");
+	Debug.println('S', "Put: returning now.");
 	return true;
     }
 
@@ -85,14 +90,17 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     public T take() {
 	T returnObject;
-	System.out.println("take(): waiting on data available P()");
+//	System.out.println("take(): waiting on data available P()");
+	Debug.println('S', "Take: waiting on data available P()");
 	dataSemaphore.P(); // wait until there is data
 	bufferLock.P();
-	System.out.println("take(): taking from putOffers");
+//	System.out.println("take(): taking from putOffers");
+	Debug.println('S', "Take: taking from putOffers");
 	returnObject = putOffers.poll();
 	bufferLock.V();	
 	spaceSemaphore.V(); // we have one more space
-	System.out.println("take(): returning object "+returnObject);
+//	System.out.println("take(): returning object "+returnObject);
+	Debug.println('S', "Take: returning object " + returnObject.hashCode());
 	return returnObject;
     }
 
@@ -206,21 +214,41 @@ public class SynchronousQueue<T> implements Queue<T> {
      * true.
      * @return  the head of this queue, or null if no element is available.
      */
-    public T poll(int timeout) {
+//    public T poll(int timeout) {
+//	callout.schedule(new Runnable(){
+//	    public void run(){
+//		bufferLock.P();
+//		if(putOffers.isEmpty()){
+//		    obj = null;
+//		}else{
+//		    obj = putOffers.poll();
+//		}
+//		bufferLock.V();
+//		//wake up producer threads 
+//		dataSemaphore.P();
+//		spaceSemaphore.V();
+//	    };
+//	}, timeout);
+//	return obj;
+//    }
+    
+  public T poll(int timeout) {
+      	bufferLock.P();//lock buffer
 	callout.schedule(new Runnable(){
 	    public void run(){
-		bufferLock.P();
-		if(putOffers.isEmpty()){
-		    obj = null;
-		}else{
-		    obj = putOffers.poll();
-		}
+//		bufferLock.P();
+		    //if we fake take it and make it go get something
+		
 		bufferLock.V();
 		//wake up producer threads 
-		dataSemaphore.P();
+		dataSemaphore.V();
 		spaceSemaphore.V();
+		//what happens if we V on a V?
 	    };
 	}, timeout);
+	dataSemaphore.P();
+	obj = putOffers.poll();
+	
 	return obj;
-    }
+  }
 }

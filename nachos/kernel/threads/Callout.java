@@ -3,6 +3,7 @@ package nachos.kernel.threads;
 import java.util.HashMap;
 import java.util.PriorityQueue;
 
+import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.InterruptHandler;
 import nachos.machine.Machine;
@@ -16,8 +17,8 @@ public class Callout {
     private static final SpinLock mutex = new SpinLock("callout mutex");
     
     public Callout(){
+	Debug.println('C', "****Callout created****");
 	timer = Machine.getTimer(0);
-	System.out.println("Timer: " +timer.interval);
 	timer.setHandler(new TimerInterrupt(timer));
 	timer.start();
     }
@@ -33,12 +34,12 @@ public class Callout {
      */
     public void schedule(Runnable runnable, int ticksFromNow){
 	//add to priority queue
-	System.out.println("Added a runnable");
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 	mutex.acquire();
 	Long wakeUpTime = new Long(currentTime + ticksFromNow);
 	scheduledEvents.put(wakeUpTime, runnable);
 	runnablesQueue.add(wakeUpTime);
+	Debug.println('C', "Callout schedule" +" runnable added, expected run time " + ticksFromNow);
 	mutex.release();
 	CPU.setLevel(oldLevel);
     }
@@ -69,7 +70,8 @@ public class Callout {
 		Callout.timer.stop();
 	    }
 	    if(nextWakeTime != null && nextWakeTime <= currentTime){
-		System.out.println("handleInterrupt():" + nextWakeTime);
+//		System.out.println("handleInterrupt():" + nextWakeTime);
+		Debug.println('C', "Callout HandleInterrupt: " +"running ticks " + nextWakeTime + " runnable");
 		Runnable event = scheduledEvents.get(nextWakeTime);
 		event.run();
 		runnablesQueue.poll(); // remove from the queue.

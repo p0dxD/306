@@ -366,8 +366,8 @@ public class Scheduler {
 
 	Debug.println('t', "Sleeping thread: " + currentThread.name);
 	Semaphore sem = new Semaphore("Sleeping semaphore", 0);
-	currentThread.setStatus(NachosThread.BLOCKED);
-	yieldCPU(NachosThread.BLOCKED, this.mutex);//TODO: change
+//	currentThread.setStatus(NachosThread.BLOCKED);
+//	yieldCPU(NachosThread.BLOCKED, this.mutex);//TODO: change
 	Callout callout = new Callout();
 	callout.schedule( new Runnable(){
 
