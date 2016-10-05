@@ -34,7 +34,9 @@ public class SynchronousQueueTest implements Runnable {
 //
 //	test11();
 //	test12();
-	test13();
+//	test13();
+//	test14();
+//	test15();
 	//next have them wakeup  
 	Nachos.scheduler.finishThread();
 
@@ -247,13 +249,13 @@ public class SynchronousQueueTest implements Runnable {
     public void test13(){
    	// 3 hanging producers and 3 polling threads that take them immediately
    	Debug.println('Q', "TEST 13 poll and offer(timeout): 3 timeing producers, 3 poll taking them immediately");
-   	NachosThread t1 = new NachosThread("test9() Thread1:",  new ProducerOfferTimeout<String>("test9() Produce1 [type = hanging]", synchronousQueue, 300));
-   	NachosThread t2 = new NachosThread("test9() Thread2:",  new ProducerOfferTimeout<String>("test9() Produce2 [type = hanging]", synchronousQueue, 200));
-   	NachosThread t3 = new NachosThread("test9() Thread3:",  new ProducerOfferTimeout<String>("test9() Produce3 [type = hanging]", synchronousQueue, 100));
+   	NachosThread t1 = new NachosThread("test13() Thread1:",  new ProducerOfferTimeout<String>("test13() Produce1 [type = timeout]", synchronousQueue, 300));
+   	NachosThread t2 = new NachosThread("test13() Thread2:",  new ProducerOfferTimeout<String>("test13() Produce2 [type = timeout]", synchronousQueue, 200));
+   	NachosThread t3 = new NachosThread("test13() Thread3:",  new ProducerOfferTimeout<String>("test13() Produce3 [type = timoe]", synchronousQueue, 100));
 
-   	NachosThread t4 = new NachosThread("test9() Thread4:",  new ConsumerTest<String>("test9() Consume1 [type = immediate]",synchronousQueue));
-   	NachosThread t5 = new NachosThread("test9() Thread5:",  new ConsumerTest<String>("test9() Consume2 [type = immediate]",synchronousQueue));
-   	NachosThread t6 = new NachosThread("test9() Thread6:",  new ConsumerTest<String>("test9() Consume3 [type = immediate]", synchronousQueue));
+   	NachosThread t4 = new NachosThread("test13() Thread4:",  new ConsumerTest<String>("test13() Consume1 [type = immediate]",synchronousQueue));
+   	NachosThread t5 = new NachosThread("test13() Thread5:",  new ConsumerTest<String>("test13() Consume2 [type = immediate]",synchronousQueue));
+   	NachosThread t6 = new NachosThread("test13() Thread6:",  new ConsumerTest<String>("test13() Consume3 [type = immediate]", synchronousQueue));
 
    	Nachos.scheduler.readyToRun(t1);
    	Nachos.scheduler.readyToRun(t2);
@@ -267,14 +269,14 @@ public class SynchronousQueueTest implements Runnable {
     
     public void test14(){
    	// 3 hanging consumers, three polling threads 
-   	Debug.println('Q', "TEST 10 poll and offer: 3 hanging consumers, 3 offers giving their objects immediately");
-   	NachosThread t1 = new NachosThread("test10() Thread1:",  new ConsumerTest<String>("test10() Consume1 [type = hanging]", synchronousQueue));
-   	NachosThread t2 = new NachosThread("test10() Thread2:",  new ConsumerTest<String>("test10() Consume2 [type = hanging]", synchronousQueue));
-   	NachosThread t3 = new NachosThread("test10() Thread3:",  new ConsumerTest<String>("test10() Consume3 [type = hanging]", synchronousQueue));
+   	Debug.println('Q', "TEST 10 poll(timeout) and offer: 3 timeing consumers, 3 offers giving their objects immediately");
+   	NachosThread t1 = new NachosThread("test14() Thread1:",  new ConsumerPollTimeout<String>("test14() Consume1 [type = timeout]", synchronousQueue, 300));
+   	NachosThread t2 = new NachosThread("test14() Thread2:",  new ConsumerPollTimeout<String>("test14() Consume2 [type = timeout]", synchronousQueue, 400));
+   	NachosThread t3 = new NachosThread("test14() Thread3:",  new ConsumerPollTimeout<String>("test14() Consume3 [type = timeout]", synchronousQueue, 500));
 
-   	NachosThread t4 = new NachosThread("test10() Thread4:",  new ProducerPollOffer<String>("test10() Produce1 [type = immediate]",synchronousQueue));
-   	NachosThread t5 = new NachosThread("test10() Thread5:",  new ProducerPollOffer<String>("test10() Produce2 [type = immediate]",synchronousQueue));
-   	NachosThread t6 = new NachosThread("test10() Thread6:",  new ProducerPollOffer<String>("test10() Produce3 [type = immediate]", synchronousQueue));
+   	NachosThread t4 = new NachosThread("test14() Thread4:",  new ProducerPollOffer<String>("test14() Produce1 [type = immediate]",synchronousQueue));
+   	NachosThread t5 = new NachosThread("test14() Thread5:",  new ProducerPollOffer<String>("test14() Produce2 [type = immediate]",synchronousQueue));
+   	NachosThread t6 = new NachosThread("test14() Thread6:",  new ProducerPollOffer<String>("test14() Produce3 [type = immediate]", synchronousQueue));
 
    	Nachos.scheduler.readyToRun(t1);
    	Nachos.scheduler.readyToRun(t2);
@@ -287,14 +289,14 @@ public class SynchronousQueueTest implements Runnable {
     
     public void test15(){
    	//3 offers returning null immediately and 3 hanging consumers"
-   	Debug.println('Q', "TEST 11 poll and offer: 3 offers returning null immediately and 3 hanging consumers");
-   	NachosThread t1 = new NachosThread("test11() Thread1:",  new ProducerPollOffer<String>("test11() Produce1 [type = immediate]", synchronousQueue));
-   	NachosThread t2 = new NachosThread("test11() Thread2:",  new ProducerPollOffer<String>("test11() Produce2 [type = immediate]", synchronousQueue));
-   	NachosThread t3 = new NachosThread("test11() Thread3:",  new ProducerPollOffer<String>("test11() Produce3 [type = immediate]", synchronousQueue));
+   	Debug.println('Q', "TEST 15 poll(timeout) and offer()timeout: 3 offers returning null timely and 3 timely consumers");
+   	NachosThread t1 = new NachosThread("test15() Thread1:",  new ProducerOfferTimeout<String>("test15() Produce1 [type = timer]", synchronousQueue,100));
+   	NachosThread t2 = new NachosThread("test15() Thread2:",  new ProducerOfferTimeout<String>("test15() Produce2 [type = timer]", synchronousQueue,200));
+   	NachosThread t3 = new NachosThread("test15() Thread3:",  new ProducerOfferTimeout<String>("test15() Produce3 [type = timer]", synchronousQueue,300));
 
-   	NachosThread t4 = new NachosThread("test11() Thread4:",  new ConsumerTest<String>("test11() Consume1 [type = hanging]",synchronousQueue));
-   	NachosThread t5 = new NachosThread("test11() Thread5:",  new ConsumerTest<String>("test11() Consume2 [type = hanging]",synchronousQueue));
-   	NachosThread t6 = new NachosThread("test11() Thread6:",  new ConsumerTest<String>("test11() Consume3 [type = hanging]", synchronousQueue));
+   	NachosThread t4 = new NachosThread("test15() Thread4:",  new ConsumerPollTimeout<String>("test15() Consume1 [type = timer]",synchronousQueue,100));
+   	NachosThread t5 = new NachosThread("test15() Thread5:",  new ConsumerPollTimeout<String>("test15() Consume2 [type = timer]",synchronousQueue,200));
+   	NachosThread t6 = new NachosThread("test15() Thread6:",  new ConsumerPollTimeout<String>("test15() Consume3 [type = timer]", synchronousQueue,300));
 
    	Nachos.scheduler.readyToRun(t1);
    	Nachos.scheduler.readyToRun(t2);

@@ -7,6 +7,7 @@ import nachos.kernel.threads.Callout;
 import nachos.kernel.threads.Condition;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 
 
 /**
@@ -37,6 +38,7 @@ public class SynchronousQueue<T> implements Queue<T> {
     private Semaphore spaceSemaphore;
     private Semaphore bufferLock;
     private Queue<T> buffer;
+    private static final SpinLock mutex = new SpinLock("callout mutex");
 //    private Queue<T> takeOffers;
     private Callout callout;
     //Timeout return variables. 
@@ -226,9 +228,9 @@ public class SynchronousQueue<T> implements Queue<T> {
 	callout.schedule(new Runnable(){
 	    public void run(){
 		    
-		bufferLock.P();
+		mutex.acquire();
 		producers++;
-		bufferLock.V();
+		mutex.release();
 		Debug.println('Q', "Offer: awaking  " + timeout);
 		sem.V();
 	
@@ -282,9 +284,9 @@ public class SynchronousQueue<T> implements Queue<T> {
 	callout.schedule(new Runnable(){
 	    public void run(){
 		    
-		bufferLock.P();
+		mutex.acquire();
 		consumers++;
-		bufferLock.V();
+		mutex.release();
 		Debug.println('Q', "Poll: awaking  " + timeout);
 		sem.V();
 		
