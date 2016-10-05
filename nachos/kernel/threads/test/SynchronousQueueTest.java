@@ -21,22 +21,22 @@ public class SynchronousQueueTest implements Runnable {
    
     @Override
     public void run() {
-//	test1();
-//	test2();
-//	test3();
-//	test4();
-//	test5();
-//	test6();
-//	test7();
-//	test8();
-//	test9();
-//	test10();
-//
-//	test11();
-//	test12();
-//	test13();
-//	test14();
-//	test15();
+	test1();
+	test2();
+	test3();
+	test4();
+	test5();
+	test6();
+	test7();
+	test8();
+	test9();
+	test10();
+
+	test11();
+	test12();
+	test13();
+	test14();
+	test15();
 	//next have them wakeup  
 	Nachos.scheduler.finishThread();
 
@@ -307,26 +307,7 @@ public class SynchronousQueueTest implements Runnable {
    	Nachos.scheduler.readyToRun(t6);
        }  
     
-    public void test16(){
-   	// 3 poll returning null immediately, 3 hanging producers,
-   	Debug.println('Q', "TEST 12 poll and offer: 3 poll returning immediately, 3 hanging producers");
-   	NachosThread t1 = new NachosThread("test12() Thread1:",  new ConsumerPollOffer<String>("test12() Consumer1 [type = immediate]", synchronousQueue));
-   	NachosThread t2 = new NachosThread("test12() Thread2:",  new ConsumerPollOffer<String>("test12() Consumer2 [type = immediate]", synchronousQueue));
-   	NachosThread t3 = new NachosThread("test12() Thread3:",  new ConsumerPollOffer<String>("test12() Consumer3 [type = immediate]", synchronousQueue));
 
-   	NachosThread t4 = new NachosThread("test12() Thread4:",  new ProducerTest<String>("test12() Produce1 [type = hanging]",synchronousQueue));
-   	NachosThread t5 = new NachosThread("test12() Thread5:",  new ProducerTest<String>("test12() Produce2 [type = hanging]",synchronousQueue));
-   	NachosThread t6 = new NachosThread("test12() Thread6:",  new ProducerTest<String>("test12() Produce3 [type = hanging]", synchronousQueue));
-
-   	Nachos.scheduler.readyToRun(t1);
-   	Nachos.scheduler.readyToRun(t2);
-   	Nachos.scheduler.readyToRun(t3);
-
-   	Nachos.scheduler.readyToRun(t4);
-   	Nachos.scheduler.readyToRun(t5);
-   	Nachos.scheduler.readyToRun(t6);
-
-       }
     
     
     
