@@ -125,8 +125,8 @@ public class Nachos implements Runnable {
 //	    ConsoleTest.start();
 	
 	
-	CalloutTest.start();
-//	SynchronousQueueTest.start();
+//	CalloutTest.start();
+	SynchronousQueueTest.start();
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility
 	// of waiting for all other threads to terminate and then shutting

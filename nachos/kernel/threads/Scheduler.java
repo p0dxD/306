@@ -359,28 +359,25 @@ public class Scheduler {
      * @param ticks to schedule a callout
      */
     public void sleepThread(int ticks){
-	//
-	System.out.println("Sleeping");
+
 	NachosThread currentThread = NachosThread.currentThread();
-//	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 
 	Debug.println('t', "Sleeping thread: " + currentThread.name);
 	Semaphore sem = new Semaphore("Sleeping semaphore", 0);
-//	currentThread.setStatus(NachosThread.BLOCKED);
-//	yieldCPU(NachosThread.BLOCKED, this.mutex);//TODO: change
+
 	Callout callout = new Callout();
 	callout.schedule( new Runnable(){
 
 	    @Override
 	    public void run() {
 		// TODO Auto-generated method stub
-		System.out.println("Sleeping thread for " +ticks);
+		Debug.println('C',"Sleeping thread for " +ticks );
 		
 		sem.V();
 	    }}, ticks);
-	System.out.println("Blocking state");
+	Debug.println('C',"Thread is sleeping ready to be awaken");
 	sem.P();
-	System.out.println("Freeing state");
+	Debug.println('C',"Thread awaken");
     }
     //TODO: should a blocked state yield the CPU?
     /**

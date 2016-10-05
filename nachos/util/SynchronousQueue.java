@@ -1,9 +1,13 @@
 package nachos.util;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import nachos.Debug;
 import nachos.kernel.threads.Callout;
+import nachos.kernel.threads.Condition;
+import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
-import nachos.kernel.threads.SpinLock;
+
 
 /**
  * This class is patterned after the SynchronousQueue class
@@ -29,17 +33,16 @@ import nachos.kernel.threads.SpinLock;
  */
 
 public class SynchronousQueue<T> implements Queue<T> {
-    private static final SpinLock mutex = new SpinLock("callout mutex");
     private Semaphore dataSemaphore;
     private Semaphore spaceSemaphore;
     private Semaphore bufferLock;
-    private Queue<T> putOffers;
-    private Queue<T> takeOffers;
+    private Queue<T> buffer;
+//    private Queue<T> takeOffers;
     private Callout callout;
     //Timeout return variables. 
     private boolean status;
-    private T obj;
-    
+//    private T obj;
+    private int consumers =0, producers = 0;
     
     
     /**
@@ -51,8 +54,8 @@ public class SynchronousQueue<T> implements Queue<T> {
 	spaceSemaphore = new Semaphore("spaceSemaphore",0);
 	bufferLock = new Semaphore("bufferLock",1);
 	//queues
-	putOffers = new FIFOQueue<>();
-	takeOffers = new FIFOQueue<>();
+	buffer = new FIFOQueue<>();
+//	takeOffers = new FIFOQueue<>();
 	//callout
 	callout = new Callout();
     }
@@ -69,16 +72,19 @@ public class SynchronousQueue<T> implements Queue<T> {
 	}
 	
 	bufferLock.P();
-//	System.out.println("put(): adding into putOffers");
-	Debug.println('S', "Put: adding into putOffers object " + obj.hashCode());
-	putOffers.offer(obj);
+	Debug.println('Q', "Put: adding into putOffers object " + obj);
+	buffer.offer(obj);
+	producers++;
 	bufferLock.V();
 	
 	//update semaphores to wake up consumer threads. 
+	Debug.println('Q', "Put: hanging on consumer to take this");
 	dataSemaphore.V(); // we have data now
 	spaceSemaphore.P(); //wait until consumer comes in takes object
-//	System.out.println("put(): returning now");
-	Debug.println('S', "Put: returning now.");
+	bufferLock.P();
+	producers--;
+	bufferLock.V();
+	Debug.println('Q', "Put: returning now.");
 	return true;
     }
 
@@ -90,17 +96,21 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     public T take() {
 	T returnObject;
-//	System.out.println("take(): waiting on data available P()");
-	Debug.println('S', "Take: waiting on data available P()");
-	dataSemaphore.P(); // wait until there is data
 	bufferLock.P();
-//	System.out.println("take(): taking from putOffers");
-	Debug.println('S', "Take: taking from putOffers");
-	returnObject = putOffers.poll();
+	consumers++;
+	bufferLock.V();
+	
+	Debug.println('Q', "Take: waiting on data available P()");
+	dataSemaphore.P(); //BLOCK: wait until there is data
+	bufferLock.P();
+
+	Debug.println('Q', "Take: taking from putOffers");
+	returnObject = buffer.poll();
+	consumers--;
 	bufferLock.V();	
-	spaceSemaphore.V(); // we have one more space
-//	System.out.println("take(): returning object "+returnObject);
-	Debug.println('S', "Take: returning object " + returnObject.hashCode());
+	spaceSemaphore.V(); //FREE: Hanging producers, we have one more space
+
+	Debug.println('Q', "Take: returning object " + returnObject);
 	return returnObject;
     }
 
@@ -114,18 +124,31 @@ public class SynchronousQueue<T> implements Queue<T> {
      */
     @Override
     public boolean offer(T e) {
+	
 	bufferLock.P();
-	if(takeOffers.isEmpty()){ //no thread to take this object
+	producers++;
+	bufferLock.V();
+	
+	bufferLock.P();
+	Debug.println('Q', "Offer: checking for available consumers");
+	if(consumers <= 0){ //no thread to take this object
+	    producers--;
 	    bufferLock.V();
+	    Debug.println('Q', "Offer: no consumers found returning");
 	    return false;
 	}
-	putOffers.offer(e);
+	Debug.println('Q', "Offer: consumer found putting " + e);
+	buffer.offer(e);
 	bufferLock.V();
 	
 	//update semaphores to wake up consumer threads. 
-	spaceSemaphore.P(); //wait until there is space available
 	dataSemaphore.V(); // we have data now
-	
+	spaceSemaphore.P(); //balances out the V() of consumer, should never actually hang
+
+	bufferLock.P();
+	producers--;
+	bufferLock.V();
+	Debug.println('Q', "Offer: not hanging.");
 	return true;
     }
     
@@ -138,20 +161,30 @@ public class SynchronousQueue<T> implements Queue<T> {
     @Override
     public T poll() { 
 	T obj; 
+	bufferLock.P();
+	consumers++;
+	bufferLock.V();
 	
 	bufferLock.P();
-	if(putOffers.isEmpty()){ //no thread offering an object
+	Debug.println('Q', "Poll: checking for available producers");
+	if(producers <= 0){ //no thread offering an object
 	    //release lock and return immediately. 
+	    consumers--;
+	    Debug.println('Q', "Poll: no producers found returning");
 	    bufferLock.V();
 	    return null;
 	}
 	//take out the object and return it. 
-	obj = putOffers.poll();
+	obj = buffer.poll();
+	Debug.println('Q', "Poll: got " + obj);
+	consumers--;
 	bufferLock.V();
 	
 	//update semaphores to wake up producer threads. 
-	spaceSemaphore.V(); //wait until there is space available
-	dataSemaphore.P(); // we have data now
+	
+	dataSemaphore.P(); // less data, balances out the V() on dataSemaphore of the producer. Should never hang
+	spaceSemaphore.V(); //Update: we have space now
+	Debug.println('Q', "Poll: not hanging.");
 	return obj;
 
     }
@@ -187,22 +220,50 @@ public class SynchronousQueue<T> implements Queue<T> {
      * was not added.
      */
     public boolean offer(T e, int timeout) {
+	
+	bufferLock.P();
+	Semaphore sem = new Semaphore("Sleeping semaphore", 0);
 	callout.schedule(new Runnable(){
 	    public void run(){
+		    
 		bufferLock.P();
-		if(takeOffers.isEmpty()){
-		    status = false;
-		}else{
-		    putOffers.offer(e);
-		    status = true;
-		}
+		producers++;
 		bufferLock.V();
-		//wake up consumer threads to take the object
-		spaceSemaphore.P();
-		dataSemaphore.V();
+		Debug.println('Q', "Offer: awaking  " + timeout);
+		sem.V();
+	
+		
 	    };
 	}, timeout);
-	return status;
+	
+	bufferLock.V();
+	Debug.println('Q', "Offer: sleeping for " + timeout);
+	sem.P();
+	
+	
+	bufferLock.P();
+	Debug.println('Q', "Offer: checking for available consumers");
+	if(consumers <= 0){ //no thread to take this object
+	    producers--;
+	    bufferLock.V();
+	    Debug.println('Q', "Offer: no consumers found returning");
+	    return false;
+	}
+	Debug.println('Q', "Offer: consumer found putting " + e);
+	buffer.offer(e);
+	bufferLock.V();
+	
+	//update semaphores to wake up consumer threads. 
+	dataSemaphore.V(); // we have data now
+	spaceSemaphore.P(); //balances out the V() of consumer, should never actually hang
+
+	bufferLock.P();
+	producers--;
+	bufferLock.V();
+	Debug.println('Q', "Offer: not hanging.");
+	return true;
+
+
     }
     
     /**
@@ -214,41 +275,51 @@ public class SynchronousQueue<T> implements Queue<T> {
      * true.
      * @return  the head of this queue, or null if no element is available.
      */
-//    public T poll(int timeout) {
-//	callout.schedule(new Runnable(){
-//	    public void run(){
-//		bufferLock.P();
-//		if(putOffers.isEmpty()){
-//		    obj = null;
-//		}else{
-//		    obj = putOffers.poll();
-//		}
-//		bufferLock.V();
-//		//wake up producer threads 
-//		dataSemaphore.P();
-//		spaceSemaphore.V();
-//	    };
-//	}, timeout);
-//	return obj;
-//    }
-    
-  public T poll(int timeout) {
-      	bufferLock.P();//lock buffer
+    public T poll(int timeout) {
+	
+	bufferLock.P();
+	Semaphore sem = new Semaphore("Sleeping semaphore", 0);
 	callout.schedule(new Runnable(){
 	    public void run(){
-//		bufferLock.P();
-		    //if we fake take it and make it go get something
-		
+		    
+		bufferLock.P();
+		consumers++;
 		bufferLock.V();
-		//wake up producer threads 
-		dataSemaphore.V();
-		spaceSemaphore.V();
-		//what happens if we V on a V?
+		Debug.println('Q', "Poll: awaking  " + timeout);
+		sem.V();
+		
+		
 	    };
 	}, timeout);
-	dataSemaphore.P();
-	obj = putOffers.poll();
 	
+	bufferLock.V();
+	
+	Debug.println('Q', "Offer: sleeping for " + timeout);
+	sem.P();
+	
+	T obj; 
+	
+	bufferLock.P();
+	Debug.println('Q', "Poll: checking for available producers");
+	if(producers <= 0){ //no thread offering an object
+	    //release lock and return immediately. 
+	    consumers--;
+	    Debug.println('Q', "Poll: no producers found returning");
+	    bufferLock.V();
+	    return null;
+	}
+	//take out the object and return it. 
+	obj = buffer.poll();
+	Debug.println('Q', "Poll: got " + obj);
+	consumers--;
+	bufferLock.V();
+	
+	//update semaphores to wake up producer threads. 
+	
+	dataSemaphore.P(); // less data, balances out the V() on dataSemaphore of the producer. Should never hang
+	spaceSemaphore.V(); //Update: we have space now
+	Debug.println('Q', "Poll: not hanging.");
 	return obj;
-  }
+    }
+    
 }

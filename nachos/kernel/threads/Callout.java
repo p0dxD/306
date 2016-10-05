@@ -44,12 +44,6 @@ public class Callout {
 	CPU.setLevel(oldLevel);
     }
     
-//    public static void main(String args[]){
-//	Machine.init();
-//	Callout call = new Callout();
-//	System.out.println("test" + Machine.getTimer(0));
-//	
-//    }
     
     public static class TimerInterrupt implements InterruptHandler{
 	private final Timer timer;
@@ -61,16 +55,13 @@ public class Callout {
 	@Override
 	public void handleInterrupt() {
 
-//	    System.out.println("Test");
 	    mutex.acquire();
 	    currentTime += 100;
 	    Long nextWakeTime = runnablesQueue.peek();
-//	    System.out.println("Test");
 	    if(nextWakeTime == null){
 		Callout.timer.stop();
 	    }
 	    if(nextWakeTime != null && nextWakeTime <= currentTime){
-//		System.out.println("handleInterrupt():" + nextWakeTime);
 		Debug.println('C', "Callout HandleInterrupt: " +"running ticks " + nextWakeTime + " runnable");
 		Runnable event = scheduledEvents.get(nextWakeTime);
 		event.run();
