@@ -1,0 +1,49 @@
+
+Nachos HW1
+
+Testing:
+
+Debugging must be run with "C" and "Q" parameters.  "C" for the callout debugging and "Q" for the synchronous queue debugging. 
+Progtest() is commented out, because it shuts down the OS simulation. 
+There are two test cases called CalloutTest.start() on line 128, and SynchronousQueueTest.start() on line 129 that runs the tests. 
+CalloutTest stops the timer, so must run either calloutTest or synchronousQueueTest one at a time. 
+
+
+
+Overview:
+
+
+I.Callout.java
+We created a constructor that initializes the current time when the constructor is called. We also have a reference to the Timer from within the class. When the handler interrupts every 100 ticks, we increment the current time by 100. 
+
+When the schedule method is called, we turn off the interrupt handler, then proceed to add the ticksFromNow to the current time, and wrap the future callout time into a Long wrapper class. We associate the Runnable with its start time by storing them into a HashMap, where the start time Long objects are mapped to the runnable to be executed. 
+
+Therefore, in our interrupt handler, after we updated the current system time, we check our priority queue for the earliest timed callout. If the scheduled callout time is within the past 100 ticks of the current system time, we execute the Runnable. 
+
+
+II.SynchronousQueue.java
+
+In SynchronousQueue, we created semaphores to represent data availability and space capacity. The space capacity is set to zero, and is basically used to block producer threads from returning, if there is no consumer thread to match with it.
+
+- The producer threads all P() on the space semaphore and consumer V() on the space semaphore. 
+- The consumer threads all P() on the data semaphore and producer V() on the data semaphore. 
+
+There is also two variables - consumers,producers, that keep track of consumer threads and producer threads respectively that are active within the queue.
+
+
+Take(): Increments the consumers variable. Then blocks on availability of data, by P() on datasemaphore. If a producer thread adds an object into the queue, the take thread will wake up and consume it by returning that object out of the queue. After, it will V() on a spaceSemaphore to wake up any hanging producer threads to continue attempting to add into the synchronous queue. When unblocked by a producer thread, will decrement the consumers variable to reflect the updated state of consumers in the synchronous queue. 
+
+Put(): Adds the object into the queue and increments the producers variable. Will V() on a datasemaphore to wake up a consumer thread. Then will P() on the spaceSemaphore and block there until a consumer comes to take out what this put() has produced. When unblocked by a consumer thread, will decrement the producers variable to reflect the updated state of producers in the synchronous queue. 
+
+Poll(): Increments consumers variable in order to notify producer threads of poll() presence. Checks if there are any producers via the producers variable. If no producers available as indicated by the consumers counter, then decrement the consumer variable and exit by return null. 
+
+Offer(): Increments producers variable in order to notify consumer threads of offer() presence. Checks if there are any consumers via the consumers variable. If no consumers available as indicated by the consumers counter, then decrement the producers variable before exiting by return false. 
+
+
+III.SynchronousQueue.java
+
+Poll(): Creates a sleeping semaphore to block the thread. Schedules callout on a runnable that V()'s on the sleep semaphore to move past the block point. 
+The poll now checks if there are any producers in the synchronous queue. If there isn't, return null. Otherwise, match with said producer. 
+
+Offer(): Creates a sleeping semaphore to block the thread. Schedules callout on a runnable that V()'s on the sleep semaphore to move past the block point. 
+The offer now checks if there are any consumers in the synchronous queue. If there isn't, return false. Otherwise match with said consumer. 
