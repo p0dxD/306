@@ -9,6 +9,7 @@ import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
+import nachos.machine.NachosThread;
 import nachos.kernel.userprog.Syscall;
 
 /**
@@ -62,8 +63,9 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
-		System.out.println("GOT EXEC");
-		Syscall.exec("");
+		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+		String executable = space.getStringFromAddress(CPU.readRegister(4), space);
+		Syscall.exec(executable);
 		break;
 	    case Syscall.SC_Write:
 		int ptr = CPU.readRegister(4);

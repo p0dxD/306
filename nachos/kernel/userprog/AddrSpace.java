@@ -26,6 +26,7 @@ import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
+import nachos.machine.NachosThread;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
 import nachos.kernel.filesys.OpenFile;
@@ -106,6 +107,32 @@ public class AddrSpace {
     return(0);
   }
 
+  public String getStringFromAddress(long address, AddrSpace space){
+	System.out.println("Inside getString");
+	
+	StringBuilder string  = new StringBuilder();
+	char tmp;
+	while((tmp =space.getMeCharAtAddress(address)) != '\0'){
+	    System.out.println("Got Char " + tmp);
+	    string.append(tmp);
+	    address++;
+	}
+	
+	return string.toString();
+  }
+  
+  //Calculate the 
+  public char getMeCharAtAddress(long address){
+
+      int virtualIndex = (int)address/Machine.PageSize;
+      int virtualOffset = (int)address%Machine.PageSize;
+      ArrayList<Integer> physicalPages = maping.get(this.SpaceId);
+      
+      //the actual physical address
+      int physicalIndexAddress  = physicalPages.get(virtualIndex)*Machine.PageSize + virtualOffset;
+      
+      return (char)Machine.mainMemory[physicalIndexAddress];
+  }
   /**
    * Initialize the user-level register set to values appropriate for
    * starting execution of a user program loaded in this address space.
