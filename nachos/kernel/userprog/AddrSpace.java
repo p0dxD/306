@@ -55,11 +55,13 @@ public class AddrSpace {
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
   
-//MEMORY MANAGEMENT AREA
+  //MEMORY MANAGEMENT AREA
   private static ArrayList<TranslationEntry> programs = new ArrayList<>();
-  //keeps track of the ones we have free
+  //keeps track of the physical pages we have free or taken.
   static boolean[] isTaken = new boolean[Machine.NumPhysPages];
+  //stores key as the address spaceId, and the value as the virtual-physical page mapping within this address space. 
   static HashMap<Integer, ArrayList<Integer>> maping = new HashMap<>();
+  //identifier for the address space. 
   private int SpaceId; 
   
   
@@ -68,7 +70,7 @@ public class AddrSpace {
    */
   public AddrSpace() { 
       SpaceId = this.hashCode();
-      System.out.println("SPACE ID INITIZLIASED " + this.SpaceId);
+      System.out.println("SPACE ID INITIALIZED " + this.SpaceId);
   }
 
   /**
@@ -163,9 +165,18 @@ public class AddrSpace {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
   
+  /*
+   *  clears the physical page, of size Machine.PageSize. Calculates the physical page index offset in main memory
+   *  Then zeroes out the size of one page. 
+   */
+  public void clearPhysPageIndex(int physPageIndex){
+      int startIndex = physPageIndex*Machine.PageSize;
+      for(int i=0;i<Machine.PageSize;i++){
+	  Machine.mainMemory[startIndex]= (byte)0;
+	  startIndex++;
+      }
+  }
   
-
-      
       /**
        * 
        * @param byteSize
@@ -180,7 +191,6 @@ public class AddrSpace {
 							// virtual memory
 	  if(isEnoughPhysMem(numPages)){
 
-	      
 	      ArrayList<Integer> physicalLocation = physicalMemoryLocation(numPages);
 	      maping.put(SpaceId, physicalLocation);
 	      
@@ -198,11 +208,11 @@ public class AddrSpace {
 		      pageTable[i].readOnly = false;  // if code and data segments live on
 						      // separate pages, we could set code 
 						      // pages to be read-only
-		    }
+	       }
 	      
 	      //zero out the memory physical location for this program 
 	      for(int i = 0; i < numPages; i++)
-	  	Machine.mainMemory[physicalLocation.get(i)] = (byte)0;
+	  	clearPhysPageIndex(physicalLocation.get(i));
 	      
 	      // then, copy in the code and data segments into memory
 	      if (noffH.code.size > 0) {
@@ -230,7 +240,7 @@ public class AddrSpace {
       }
       
       /**
-       * 
+       * Checks if we have enough available physical pages within the machine to accomodate the requested pages. 
        * @param pagesNeeded
        * @return
        */
@@ -245,7 +255,6 @@ public class AddrSpace {
        */
       public ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
 	  ArrayList<Integer> physicalLocation = new ArrayList<Integer>();
-	  
 	  for(int i = 0; (i < isTaken.length) && (pagesNeeded > 0); i++){
 	      if(!isTaken[i]){
 		  physicalLocation.add(i);
@@ -253,12 +262,11 @@ public class AddrSpace {
 		  pagesNeeded--;
 	      }
 	  }
-	  
 	  return physicalLocation;
       }
       
       /**
-       * 
+       * Returns the number of physical pages that are free. 
        * @return
        */
       public int getFreePageNum(){
@@ -271,8 +279,4 @@ public class AddrSpace {
 	  return count;
       }
       
-//  }
-  
-  
-  
 }
