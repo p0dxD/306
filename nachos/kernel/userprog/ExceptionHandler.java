@@ -10,6 +10,7 @@ import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
 import nachos.machine.NachosThread;
+import nachos.kernel.threads.Scheduler;
 import nachos.kernel.userprog.Syscall;
 
 /**
@@ -78,6 +79,11 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		//System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
 		//TODO:v to p
 		Syscall.write(buf, len, CPU.readRegister(6));
+		break;
+	    case Syscall.SC_Yield:
+		
+//		Scheduler.yieldThread();
+		
 		break;
 	    }
 

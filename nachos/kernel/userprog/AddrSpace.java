@@ -295,6 +295,7 @@ public class AddrSpace {
 	        executable.seek(noffH.code.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);//fix convert to physical
 	        //read part by part page by page
+	        copySegmentToPhysical(physicalLocation, executable);
 	      }
 
 	      if (noffH.initData.size > 0) {
@@ -305,10 +306,19 @@ public class AddrSpace {
 	        executable.seek(noffH.initData.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);//same as top
 	        //convert v to p
+	        copySegmentToPhysical(physicalLocation, executable);
 	      }
 	  }else{
 	      System.out.println("NOT ENOUGH MEM");
 	      Debug.print('M', "Not enough Physical mem.");
+	  }
+      }
+      
+      public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){
+	  System.out.println("Coping segment" + physical.toString());	  
+	  for(int i = 0; i < physical.size();i++){
+	      executable.read(Machine.mainMemory, physical.get(i)*Machine.PageSize, Machine.PageSize);
+	  
 	  }
       }
       
