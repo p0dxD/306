@@ -8,6 +8,7 @@ package nachos.kernel.userprog;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
@@ -93,11 +94,49 @@ public class Syscall {
      * @param name The name of the file to execute.
      */
     public static int exec(String name) {
-	System.out.println("EXEC" + CPU.readRegister(4) + " " + (char)Machine.mainMemory[CPU.readRegister(4)+2]  + 
-		" Size " + Machine.MemorySize +" physical physical " + Machine.NumPhysPages +" ");
-	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-	System.out.println("ID FOR THIS THREAD"+space.getSpaceId());
-	return 0;}
+	
+	System.out.println("String asked to be executed " + name);
+	
+	String str = "ProgTest"+ 1 + "(" + name + ")";
+	
+	Debug.println('+', "starting ProgTest: " + name);
+
+//	execName = name;
+	AddrSpace space = new AddrSpace();
+	UserThread t = new UserThread(name, new Runnable(){
+	    public void run(){
+		System.out.println("RUNNING THE DESIRED THREAD");
+		OpenFile executable;
+
+		if((executable = Nachos.fileSystem.open(name)) == null) {
+		    Debug.println('+', "Unable to open executable file: " + name);
+		    Nachos.scheduler.finishThread();
+		    return;
+		}
+
+		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+		if(space.exec(executable) == -1) {
+		    Debug.println('+', "Unable to read executable file: " + name);
+		    Nachos.scheduler.finishThread();
+		    return;
+		}
+
+		space.initRegisters();		// set the initial register values
+		space.restoreState();		// load page table register
+
+		CPU.runUserCode();			// jump to the user progam
+		Debug.ASSERT(false);		// machine->Run never returns;
+		// the address space exits
+		// by doing the syscall "exit"	
+		
+	    };
+	}, space);
+	Nachos.scheduler.readyToRun(t);
+
+	return 0;
+    }
+    
+    
 
     /**
      * Wait for the user program specified by "id" to finish, and
