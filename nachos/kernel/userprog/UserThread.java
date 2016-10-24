@@ -11,7 +11,15 @@
 package nachos.kernel.userprog;
 
 import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
+import nachos.machine.TranslationEntry;
+import nachos.noff.NoffHeader;
+
+import java.util.ArrayList;
+
+import nachos.Debug;
+import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
 
 /**
@@ -28,6 +36,8 @@ public class UserThread extends NachosThread {
 
     /** The context in which this thread will execute. */
     public final AddrSpace space;
+    //each thread has its own pageTable
+    private TranslationEntry pageTable[];
 
     // A thread running a user program actually has *two* sets of 
     // CPU registers -- one for its state while executing user code,
@@ -50,8 +60,12 @@ public class UserThread extends NachosThread {
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
 	space = addrSpace;
+	//find the set stack size throughout the system, then allocate mem for thread's own stack. 
+	int stackSize = addrSpace.getUserStackSize();
+	
+	
     }
-
+    
     /**
      * Save the CPU state of a user program on a context switch.
      */
