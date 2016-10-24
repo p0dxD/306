@@ -201,7 +201,15 @@ public class Syscall {
      * @param func The user address of the procedure to be run by the
      * new thread.
      */
-    public static void fork(int func) {}
+    public static void fork(int func) {
+	AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
+	//Question: how do we load the func at address into run?
+	Runnable run = new Runnable(){
+	    public void run(){}
+	};
+	UserThread spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace);
+	
+    }
 
     /**
      * Yield the CPU to another runnable thread, whether in this address space 

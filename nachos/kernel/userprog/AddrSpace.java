@@ -64,6 +64,10 @@ public class AddrSpace {
   //identifier for the address space. 
   private int SpaceId; 
   
+  public int getUserStackSize(){
+      return AddrSpace.UserStackSize;
+  }
+  
   
   /**
    * Create a new address space.
@@ -100,9 +104,7 @@ public class AddrSpace {
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
 	     + UserStackSize;	// we need to increase the size
     				// to leave room for the stack
-    	//
-    	getFreePages(size, SpaceId, noffH, executable);
-    	
+    getFreePages(size, SpaceId, noffH, executable);
     return(0);
   }
 
@@ -232,8 +234,6 @@ public class AddrSpace {
 	        executable.seek(noffH.initData.inFileAddr);
 	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
 	      }
-
-	      
 	  }else{
 	      Debug.print('M', "Not enough Physical mem.");
 	  }
@@ -278,5 +278,5 @@ public class AddrSpace {
 	  }
 	  return count;
       }
-      
+            
 }
