@@ -110,12 +110,12 @@ public class AddrSpace {
   }
 
   public String getStringFromAddress(long address, AddrSpace space){
-	System.out.println("Inside getString");
+//	System.out.println("Inside getString");
 	
 	StringBuilder string  = new StringBuilder();
 	char tmp;
 	while((tmp =space.getMeCharAtAddress(address)) != '\0'){
-	    System.out.println("Got Char " + tmp);
+//	    System.out.println("Got Char " + tmp);
 	    string.append(tmp);
 	    address++;
 	}
@@ -171,8 +171,14 @@ public class AddrSpace {
    *
    * For now, nothing!
    */
-  public void saveState() {}
-
+  public void saveState() {
+      
+  }
+  
+  //done when switching one process 
+  //proper page to happen
+  
+  
   /**
    * On a context switch, restore any machine state specific
    * to this address space.
@@ -194,6 +200,42 @@ public class AddrSpace {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
   
+  
+  /**
+   * 
+   */
+  public void cleanProgram(){
+
+      int size = 0;
+      for(boolean i: isTaken){
+	  if(i){
+	      size++;
+	  }
+      }
+      
+      System.out.println("Cleaning size he have " + size);
+      
+      ArrayList<Integer> physical = maping.get(this.SpaceId);
+      for(Integer i: physical){
+	  clearPhysPageIndex(i);
+	  isTaken[i] = false;
+      }
+      maping.remove(this.SpaceId);
+      
+      size = 0;
+      for(boolean i: isTaken){
+	  if(i){
+	      size++;
+	  }
+      }
+      
+      System.out.println("Cleaning done new size " + size);
+      
+   
+      System.out.println("Done freeing up");
+  }
+  
+  
   /*
    *  clears the physical page, of size Machine.PageSize. Calculates the physical page index offset in main memory
    *  Then zeroes out the size of one page. 
@@ -212,6 +254,7 @@ public class AddrSpace {
        */
       public void getFreePages(long byteSize, int SpaceId, NoffHeader noffH,OpenFile executable){
 	  
+	 
 	  int numPages = (int)(byteSize / Machine.PageSize);
 	    Debug.ASSERT((numPages <= Machine.NumPhysPages),// check we're not trying
 			 "AddrSpace constructor: Not enough memory!");
@@ -250,7 +293,8 @@ public class AddrSpace {
 	  	    noffH.code.size);
 
 	        executable.seek(noffH.code.inFileAddr);
-	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
+//	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);//fix convert to physical
+	        //read part by part page by page
 	      }
 
 	      if (noffH.initData.size > 0) {
@@ -259,9 +303,11 @@ public class AddrSpace {
 	  	    noffH.initData.size);
 
 	        executable.seek(noffH.initData.inFileAddr);
-	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
+//	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);//same as top
+	        //convert v to p
 	      }
 	  }else{
+	      System.out.println("NOT ENOUGH MEM");
 	      Debug.print('M', "Not enough Physical mem.");
 	  }
       }

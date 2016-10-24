@@ -84,6 +84,10 @@ public class Syscall {
     public static void exit(int status) {
 	Debug.println('+', "User program exits with status=" + status
 				+ ": " + NachosThread.currentThread().name);
+	System.out.println("Cleaning thread");
+	
+	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+	space.cleanProgram();
 	Nachos.scheduler.finishThread();
     }
 
@@ -99,12 +103,13 @@ public class Syscall {
 	
 	String str = "ProgTest"+ 1 + "(" + name + ")";
 	
-	Debug.println('+', "starting ProgTest: " + name);
+	Debug.println('+', "starting ProgTest: " + str);
 
 //	execName = name;
 	AddrSpace space = new AddrSpace();
 	UserThread t = new UserThread(name, new Runnable(){
 	    public void run(){
+
 		System.out.println("RUNNING THE DESIRED THREAD");
 		OpenFile executable;
 
@@ -120,7 +125,7 @@ public class Syscall {
 		    Nachos.scheduler.finishThread();
 		    return;
 		}
-
+		System.out.println("Trying to execute: " + space==null);
 		space.initRegisters();		// set the initial register values
 		space.restoreState();		// load page table register
 
@@ -128,13 +133,22 @@ public class Syscall {
 		Debug.ASSERT(false);		// machine->Run never returns;
 		// the address space exits
 		// by doing the syscall "exit"	
-		
+		//user t
 	    };
 	}, space);
+	System.out.println("something");
 	Nachos.scheduler.readyToRun(t);
 
-	return 0;
+	return space.getSpaceId();
     }
+    
+    //stackpointer init register
+    //register pc
+    //runnable has to setup register and jump to usermode
+    //address space already initialized
+    //where is it going to start running, also the stack pointer 
+    //other register should be cleared
+    //CPU.runUserCode();
     
     
 

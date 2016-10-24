@@ -57,22 +57,26 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	    switch (type) {
 	    case Syscall.SC_Halt:
+		System.out.println("IN HALT");
 		Syscall.halt();
 		break;
 	    case Syscall.SC_Exit:
+		System.out.println("IN EXIT");
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
 		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		String executable = space.getStringFromAddress(CPU.readRegister(4), space);
+		String executable = "test/"+space.getStringFromAddress(CPU.readRegister(4), space);
 		Syscall.exec(executable);
 		break;
 	    case Syscall.SC_Write:
+		System.out.println("IN WRITE");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
 
-		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
+		//System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
+		//TODO:v to p
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
 	    }
