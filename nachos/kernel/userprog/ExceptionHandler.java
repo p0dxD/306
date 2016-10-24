@@ -62,6 +62,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
+		System.out.println("GOT EXEC");
 		Syscall.exec("");
 		break;
 	    case Syscall.SC_Write:

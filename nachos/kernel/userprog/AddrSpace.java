@@ -19,6 +19,9 @@
 
 package nachos.kernel.userprog;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
@@ -51,11 +54,22 @@ public class AddrSpace {
 
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
-
+  
+//MEMORY MANAGEMENT AREA
+  private static ArrayList<TranslationEntry> programs = new ArrayList<>();
+  //keeps track of the ones we have free
+  static boolean[] isTaken = new boolean[Machine.NumPhysPages];
+  static HashMap<Integer, ArrayList<Integer>> maping = new HashMap<>();
+  private int SpaceId; 
+  
+  
   /**
    * Create a new address space.
    */
-  public AddrSpace() { }
+  public AddrSpace() { 
+      SpaceId = this.hashCode();
+      System.out.println("SPACE ID INITIZLIASED " + this.SpaceId);
+  }
 
   /**
    * Load the program from a file "executable", and set everything
@@ -84,55 +98,9 @@ public class AddrSpace {
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
 	     + UserStackSize;	// we need to increase the size
     				// to leave room for the stack
-    int numPages = (int)(size / Machine.PageSize);
-
-    Debug.ASSERT((numPages <= Machine.NumPhysPages),// check we're not trying
-		 "AddrSpace constructor: Not enough memory!");
-                                                // to run anything too big --
-						// at least until we have
-						// virtual memory
-
-    Debug.println('a', "Initializing address space, numPages=" 
-		+ numPages + ", size=" + size);
-
-    // first, set up the translation 
-    pageTable = new TranslationEntry[numPages];
-    for (int i = 0; i < numPages; i++) {
-      pageTable[i] = new TranslationEntry();
-      pageTable[i].virtualPage = i; // for now, virtual page# = phys page#
-      pageTable[i].physicalPage = i;
-      pageTable[i].valid = true;
-      pageTable[i].use = false;
-      pageTable[i].dirty = false;
-      pageTable[i].readOnly = false;  // if code and data segments live on
-				      // separate pages, we could set code 
-				      // pages to be read-only
-    }
-    
-    // Zero out the entire address space, to zero the uninitialized data 
-    // segment and the stack segment.
-    for(int i = 0; i < size; i++)
-	Machine.mainMemory[i] = (byte)0;
-
-    // then, copy in the code and data segments into memory
-    if (noffH.code.size > 0) {
-      Debug.println('a', "Initializing code segment, at " +
-	    noffH.code.virtualAddr + ", size " +
-	    noffH.code.size);
-
-      executable.seek(noffH.code.inFileAddr);
-      executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
-    }
-
-    if (noffH.initData.size > 0) {
-      Debug.println('a', "Initializing data segment, at " +
-	    noffH.initData.virtualAddr + ", size " +
-	    noffH.initData.size);
-
-      executable.seek(noffH.initData.inFileAddr);
-      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
-    }
-
+    	//
+    	getFreePages(size, SpaceId, noffH, executable);
+    	
     return(0);
   }
 
@@ -184,10 +152,127 @@ public class AddrSpace {
     CPU.setPageTable(pageTable);
   }
 
+  
+  public int getSpaceId(){
+      return this.SpaceId;
+  }
   /**
    * Utility method for rounding up to a multiple of CPU.PageSize;
    */
   private long roundToPage(long size) {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
+  
+  
+
+      
+      /**
+       * 
+       * @param byteSize
+       */
+      public void getFreePages(long byteSize, int SpaceId, NoffHeader noffH,OpenFile executable){
+	  
+	  int numPages = (int)(byteSize / Machine.PageSize);
+	    Debug.ASSERT((numPages <= Machine.NumPhysPages),// check we're not trying
+			 "AddrSpace constructor: Not enough memory!");
+	                                                // to run anything too big --
+							// at least until we have
+							// virtual memory
+	  if(isEnoughPhysMem(numPages)){
+
+	      
+	      ArrayList<Integer> physicalLocation = physicalMemoryLocation(numPages);
+	      maping.put(SpaceId, physicalLocation);
+	      
+	    Debug.println('a', "Initializing address space, numPages=" 
+			+ numPages + ", size=" + byteSize);
+	      //store the physical and link it to this physical
+	      pageTable = new TranslationEntry[numPages];
+	      for (int i = 0; i < numPages; i++) {
+		      pageTable[i] = new TranslationEntry();
+		      pageTable[i].virtualPage = i; 
+		      pageTable[i].physicalPage = physicalLocation.get(i);
+		      pageTable[i].valid = true;
+		      pageTable[i].use = false;
+		      pageTable[i].dirty = false;
+		      pageTable[i].readOnly = false;  // if code and data segments live on
+						      // separate pages, we could set code 
+						      // pages to be read-only
+		    }
+	      
+	      //zero out the memory physical location for this program 
+	      for(int i = 0; i < numPages; i++)
+	  	Machine.mainMemory[physicalLocation.get(i)] = (byte)0;
+	      
+	      // then, copy in the code and data segments into memory
+	      if (noffH.code.size > 0) {
+	        Debug.println('a', "Initializing code segment, at " +
+	  	    noffH.code.virtualAddr + ", size " +
+	  	    noffH.code.size);
+
+	        executable.seek(noffH.code.inFileAddr);
+	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
+	      }
+
+	      if (noffH.initData.size > 0) {
+	        Debug.println('a', "Initializing data segment, at " +
+	  	    noffH.initData.virtualAddr + ", size " +
+	  	    noffH.initData.size);
+
+	        executable.seek(noffH.initData.inFileAddr);
+	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
+	      }
+
+	      
+	  }else{
+	      Debug.print('M', "Not enough Physical mem.");
+	  }
+      }
+      
+      /**
+       * 
+       * @param pagesNeeded
+       * @return
+       */
+      public boolean isEnoughPhysMem(int pagesNeeded){
+	  return getFreePageNum() >= pagesNeeded;
+      }
+      
+      /**
+       * 
+       * @param pagesNeeded
+       * @return
+       */
+      public ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
+	  ArrayList<Integer> physicalLocation = new ArrayList<Integer>();
+	  
+	  for(int i = 0; (i < isTaken.length) && (pagesNeeded > 0); i++){
+	      if(!isTaken[i]){
+		  physicalLocation.add(i);
+		  isTaken[i] = true;
+		  pagesNeeded--;
+	      }
+	  }
+	  
+	  return physicalLocation;
+      }
+      
+      /**
+       * 
+       * @return
+       */
+      public int getFreePageNum(){
+	  int count = 0;
+	  for(int i = 0; i < isTaken.length; i++){
+	      if(!isTaken[i]){
+		  count++;
+	      }
+	  }
+	  return count;
+      }
+      
+//  }
+  
+  
+  
 }

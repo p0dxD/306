@@ -8,6 +8,8 @@ package nachos.kernel.userprog;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.machine.CPU;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 
@@ -90,7 +92,12 @@ public class Syscall {
      *
      * @param name The name of the file to execute.
      */
-    public static int exec(String name) {return 0;}
+    public static int exec(String name) {
+	System.out.println("EXEC" + CPU.readRegister(4) + " " + (char)Machine.mainMemory[CPU.readRegister(4)+2]  + 
+		" Size " + Machine.MemorySize +" physical physical " + Machine.NumPhysPages +" ");
+	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+	System.out.println("ID FOR THIS THREAD"+space.getSpaceId());
+	return 0;}
 
     /**
      * Wait for the user program specified by "id" to finish, and

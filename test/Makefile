@@ -59,6 +59,16 @@ halt: halt.o start.o
 	$(COFF2NOFF) halt.coff halt
 	rm halt.coff
 
+exec1.s: exec1.c
+	$(CC) $(SFLAGS) exec1.c
+exec1.o: exec1.c
+	$(CC) $(CFLAGS) exec1.c
+exec1: exec1.o start.o
+	$(LD) $(LDFLAGS) start.o exec1.o -o exec1.coff
+	rm exec1.o
+	$(COFF2NOFF) exec1.coff exec1
+	rm exec1.coff
+	
 # If you are using gmake, the following rules should enable you to
 # compile any of the test programs.  Otherwise, you have to copy the
 # above code for "halt", making appropriate changes, to compile other
