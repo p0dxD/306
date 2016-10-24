@@ -238,8 +238,9 @@ public class Syscall {
      * new thread.
      */
     public static void fork(int func) {
+	//current thread address space
 	AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
-   
+	//declare register init tasks for the new thread. 
 	Runnable run = new Runnable(){
 	    public void run(){
 		//clear the mips registers
@@ -247,6 +248,9 @@ public class Syscall {
 		for (i = 0; i < MIPS.NumTotalRegs; i++){
 		    CPU.writeRegister(i, 0);		    
 		}
+		//TODO: virtual address for func?Then convert. 
+		
+		
 		//pass in user address of procedure for the user program in mem
 		CPU.writeRegister(MIPS.PCReg, func);	
 		//next user instruction due to possible branch delay
