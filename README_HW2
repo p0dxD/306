@@ -17,6 +17,7 @@ To do so, we created a static boolean vector to keep track of the physical pages
 
 II.Syscall.java
 a)exec():
+For Exec, we used call the exec() function in the address space. 
 
 b) Fork(): 
 For forking, we created a new UserThread every time fork() is called. 
