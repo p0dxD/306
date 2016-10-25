@@ -6,9 +6,13 @@
 
 package nachos.kernel.userprog;
 
+import java.util.HashMap;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.Condition;
+import nachos.kernel.threads.Lock;
 import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
@@ -64,7 +68,10 @@ public class Syscall {
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
 
-
+    static HashMap<Integer, Integer> programsThatExited = new HashMap<>();
+    //lock for join
+    static Lock lock = new Lock("Lock for join");
+    static Condition con = new Condition("Not free",lock);
     /**
      * Stop Nachos, and print out performance stats.
      */
@@ -88,7 +95,14 @@ public class Syscall {
 	
 	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 	space.cleanProgram();
+	programsThatExited.put(space.getSpaceId(),status);
+	lock.acquire();
+	System.out.println("GOT " + space.getSpaceId());
+	con.signal();
+	lock.release();
+	
 	Nachos.scheduler.finishThread();
+	System.out.println("Returning");
     }
 
     /**
@@ -138,7 +152,8 @@ public class Syscall {
 	}, space);
 	System.out.println("something");
 	Nachos.scheduler.readyToRun(t);
-
+	//write back the result to the register
+	CPU.writeRegister(2, space.getSpaceId());
 	return space.getSpaceId();
     }
     
@@ -149,8 +164,7 @@ public class Syscall {
     //where is it going to start running, also the stack pointer 
     //other register should be cleared
     //CPU.runUserCode();
-    
-    
+
 
     /**
      * Wait for the user program specified by "id" to finish, and
@@ -159,8 +173,23 @@ public class Syscall {
      * @param id The "space ID" of the program to wait for.
      * @return the exit status of the specified program.
      */
-    public static int join(int id) {return 0;}
+    public static int join(int id) {
+	System.out.println("In join waiting for " + id);
+	
+	
+	lock.acquire();
+	
+	while(!programsThatExited.containsKey(id)){
+	    con.await();
+	}
+	int status = programsThatExited.remove(id);
+	lock.release();
+	System.out.println("OUT OF JOIN");
+	return status;
+    }
 
+    
+    
 
     /* File system operations: Create, Open, Read, Write, Close
      * These functions are patterned after UNIX -- files represent

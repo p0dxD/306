@@ -10,6 +10,7 @@ import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
 import nachos.machine.NachosThread;
+import nachos.kernel.Nachos;
 import nachos.kernel.threads.Scheduler;
 import nachos.kernel.userprog.Syscall;
 
@@ -76,14 +77,17 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
 
-		//System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
+		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
 		//TODO:v to p
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
 	    case Syscall.SC_Yield:
-		
-//		Scheduler.yieldThread();
-		
+		System.out.println("IN YIELD");
+		 Nachos.scheduler.yieldThread();
+		break;
+	    case Syscall.SC_Join:
+		System.out.println("IN JOIN");
+		Syscall.join(CPU.readRegister(4));
 		break;
 	    }
 
