@@ -101,6 +101,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 //		System.out.println("IN JOIN");
 		Syscall.join(CPU.readRegister(4));
 		break;
+	    case Syscall.SC_Fork:
+//		System.out.println("IN FORK");
+		Syscall.fork(CPU.readRegister(4));
+		break;
 	    }
 
 	    // Update the program counter to point to the next instruction
