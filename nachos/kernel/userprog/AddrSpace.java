@@ -127,14 +127,23 @@ public class AddrSpace {
 	return string.toString();
   }
   
-  //Calculate the 
+  //get the char at the physical index. 
   public char getMeCharAtAddress(long address){
+      int physicalIndexAddress = convertVirtualToPhysicalIndex(address);
+      return (char)Machine.mainMemory[physicalIndexAddress];
+  }
+  
+  /*
+   * Takes in a virtual index within the virtual page table, and returns the 
+   * index within the  physical page table in main memory. 
+   */
+  public int convertVirtualToPhysicalIndex(long address){
       int virtualIndex = (int)address/Machine.PageSize;
       int virtualOffset = (int)address%Machine.PageSize;
       ArrayList<Integer> physicalPages = maping.get(this.SpaceId);
       //the actual physical address
       int physicalIndexAddress  = physicalPages.get(virtualIndex)*Machine.PageSize + virtualOffset;
-      return (char)Machine.mainMemory[physicalIndexAddress];
+      return physicalIndexAddress;
   }
   
   /**

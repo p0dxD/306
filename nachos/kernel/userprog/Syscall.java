@@ -327,21 +327,20 @@ public class Syscall {
     public static void fork(int func) {
 	//current thread address space
 	AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
-	//declare register init tasks for the new thread. 
+	//declare register init tasks for the new thread.
+	//Convert virtual address to physical address where the function is stored
+	int functionAddress = currentAddrSpace.convertVirtualToPhysicalIndex(func);
 	Runnable run = new Runnable(){
 	    public void run(){
 		//clear the mips registers
 		int i;
 		for (i = 0; i < MIPS.NumTotalRegs; i++){
 		    CPU.writeRegister(i, 0);		    
-		}
-		//TODO: virtual address for func?Then convert. 
-		
-		
+		}		
 		//pass in user address of procedure for the user program in mem
-		CPU.writeRegister(MIPS.PCReg, func);	
+		CPU.writeRegister(MIPS.PCReg, functionAddress);	
 		//next user instruction due to possible branch delay
-		CPU.writeRegister(MIPS.NextPCReg, func+4);
+		CPU.writeRegister(MIPS.NextPCReg, functionAddress+4);
 		int sp = currentAddrSpace.getPageTableLength()* Machine.PageSize;
 		CPU.writeRegister(MIPS.StackReg, sp);
 		Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");
