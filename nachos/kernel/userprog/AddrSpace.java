@@ -49,7 +49,7 @@ import nachos.kernel.filesys.OpenFile;
  * @author Eugene W. Stark (Stony Brook University)
  */
 public class AddrSpace {
-
+   
   /** Page table that describes a virtual-to-physical address mapping. */
   private TranslationEntry pageTable[];
 
@@ -65,6 +65,8 @@ public class AddrSpace {
   //identifier for the address space. 
   private int SpaceId; 
   
+  public static HashMap<Integer, AddrSpace> addresses = new HashMap<>();
+  
   public int getUserStackSize(){
       return AddrSpace.UserStackSize;
   }
@@ -74,7 +76,9 @@ public class AddrSpace {
    * Create a new address space.
    */
   public AddrSpace() { 
+      
       SpaceId = this.hashCode();
+      addresses.put(SpaceId, this);
       System.out.println("SPACE ID INITIALIZED " + this.SpaceId);
   }
 
@@ -206,14 +210,14 @@ public class AddrSpace {
    */
   public void cleanProgram(){
 
-      int size = 0;
-      for(boolean i: isTaken){
-	  if(i){
-	      size++;
-	  }
-      }
+//      int size = 0;
+//      for(boolean i: isTaken){
+//	  if(i){
+//	      size++;
+//	  }
+//      }
       
-      System.out.println("Cleaning size he have " + size);
+//      System.out.println("Cleaning size he have " + size);
       
       ArrayList<Integer> physical = maping.get(this.SpaceId);
       for(Integer i: physical){
@@ -222,17 +226,17 @@ public class AddrSpace {
       }
       maping.remove(this.SpaceId);
       
-      size = 0;
-      for(boolean i: isTaken){
-	  if(i){
-	      size++;
-	  }
-      }
+//      size = 0;
+//      for(boolean i: isTaken){
+//	  if(i){
+//	      size++;
+//	  }
+//      }
       
-      System.out.println("Cleaning done new size " + size);
+//      System.out.println("Cleaning done new size " + size);
       
-   
-      System.out.println("Done freeing up");
+      Debug.println('S', "Done cleaning up process.");
+//      System.out.println("Done freeing up");
   }
   
   
@@ -315,7 +319,7 @@ public class AddrSpace {
       }
       
       public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){
-	  System.out.println("Coping segment" + physical.toString());	  
+//	  System.out.println("Coping segment" + physical.toString());	  
 	  for(int i = 0; i < physical.size();i++){
 	      executable.read(Machine.mainMemory, physical.get(i)*Machine.PageSize, Machine.PageSize);
 	  
