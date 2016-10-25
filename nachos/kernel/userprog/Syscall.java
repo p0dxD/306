@@ -19,6 +19,7 @@ import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.machine.TranslationEntry;
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
@@ -330,13 +331,16 @@ public class Syscall {
 	//declare register init tasks for the new thread.
 	//Convert virtual address to physical address where the function is stored
 	int functionAddress = currentAddrSpace.convertVirtualToPhysicalIndex(func);
+	TranslationEntry[] pageTable = UserThread.copyThreadPageTable(currentAddrSpace.getPageTable(),AddrSpace.getUserStackSize());
+	
 	Runnable run = new Runnable(){
 	    public void run(){
 		//clear the mips registers
 		int i;
 		for (i = 0; i < MIPS.NumTotalRegs; i++){
 		    CPU.writeRegister(i, 0);		    
-		}		
+		}
+		CPU.setPageTable(pageTable);
 		//pass in user address of procedure for the user program in mem
 		CPU.writeRegister(MIPS.PCReg, functionAddress);	
 		//next user instruction due to possible branch delay
@@ -344,9 +348,12 @@ public class Syscall {
 		int sp = currentAddrSpace.getPageTableLength()* Machine.PageSize;
 		CPU.writeRegister(MIPS.StackReg, sp);
 		Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");
+		CPU.runUserCode();
 	    }
 	};
 	UserThread spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace);
+	spawnedThread.setPageTable(pageTable);
+	Nachos.scheduler.readyToRun(spawnedThread);
     }
 
     /**

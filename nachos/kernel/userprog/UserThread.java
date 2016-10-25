@@ -59,8 +59,6 @@ public class UserThread extends NachosThread {
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
 	space = addrSpace;
-	//find the set stack size throughout the system, then allocate mem for thread's own stack. 
-	initThreadPageTable(addrSpace.getPageTable(),AddrSpace.getUserStackSize());
     }
     
     /*
@@ -68,29 +66,29 @@ public class UserThread extends NachosThread {
      * Grabs the virtual page table from the address space, shared by all threads, and then initializes
      * its own thread pageTable. 
      */
-    public void initThreadPageTable(TranslationEntry[] pageTable, int tablePageSize){
-	this.pageTable = new TranslationEntry[tablePageSize];
+    public static TranslationEntry[] copyThreadPageTable(TranslationEntry[] oldTable, int tablePageSize){
+	TranslationEntry[] newPageTable = new TranslationEntry[tablePageSize];
 	//calculate how many pages of the pageTable is for user stack. 
 	int pagesForStack = (int)(AddrSpace.getUserStackSize() / Machine.PageSize);
 	//copy all pages from the address space's pageTable, except for the stack space. 
 	for(int i=0;i<(tablePageSize-pagesForStack);i++){
-	    this.pageTable[i].virtualPage =pageTable[i].virtualPage;
-	    this.pageTable[i].physicalPage =pageTable[i].physicalPage;
-	    this.pageTable[i].valid =pageTable[i].valid;
-	    this.pageTable[i].use =pageTable[i].use;
-	    this.pageTable[i].dirty =pageTable[i].dirty;
+	    newPageTable[i].virtualPage =oldTable[i].virtualPage;
+	    newPageTable[i].physicalPage =oldTable[i].physicalPage;
+	    newPageTable[i].valid =oldTable[i].valid;
+	    newPageTable[i].use =oldTable[i].use;
+	    newPageTable[i].dirty =oldTable[i].dirty;
 	}
 	//get free space from physical memory for this threads own stack. 
 	ArrayList<Integer> physPagesForStack = AddrSpace.physicalMemoryLocation(pagesForStack);
 	//map the retrieved free physical pages to the thread's pageTable's stack area. 
 	for(int i= (tablePageSize-pagesForStack);i<tablePageSize; i++){
-	    this.pageTable[i].virtualPage = i;
-	    this.pageTable[i].physicalPage = physPagesForStack.get((tablePageSize-pagesForStack)-i); //calculation to start iterating at 0 through pagesForStack-1
-	    this.pageTable[i].valid = true;
-	    this.pageTable[i].use= false;
-	    this.pageTable[i].dirty= false;
+	    newPageTable[i].virtualPage = i;
+	    newPageTable[i].physicalPage = physPagesForStack.get((tablePageSize-pagesForStack)-i); //calculation to start iterating at 0 through pagesForStack-1
+	    newPageTable[i].valid = true;
+	    newPageTable[i].use= false;
+	    newPageTable[i].dirty= false;
 	}
-		
+	return newPageTable;
     }
     
     /**
@@ -123,5 +121,9 @@ public class UserThread extends NachosThread {
 
 	// Restore state associated with the address space.
 	space.restoreState();
+    }
+    
+    public void setPageTable(TranslationEntry[] pageTable){
+	this.pageTable = pageTable;
     }
 }
