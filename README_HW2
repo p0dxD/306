@@ -16,14 +16,22 @@ To do so, we created a static boolean vector to keep track of the physical pages
 
 
 II.Syscall.java
-a)exec():
-For Exec, we used call the exec() function in the address space. 
+a)Exec():
+For Exec, we used call the exec() function in the address space, which initializes the page Tables for the address space. 
+Instead of the original one-to-one mapping in single programming, we keep track of used/free physical pages in Main Memory.
+Then we return the free physical pages, and maps it to the virtual pages for multiprogramming.  
 
 b) Fork(): 
 For forking, we created a new UserThread every time fork() is called. 
 The newly spawned thread is constructed by sharing the address space with the currently running NachosThread. 
 It takes the user address of the function to execute, and loads it into the MIPS PC register. 
 It also calculates the address of the stack pointer for the newly spawned thread. 
+
+c) Yield():
+Links the system call to the scheduler's yield() function. 
+
+d) Join():
+AddrSpaces are stored in hashtable, linked with the 
 
 III.UserThread.java
 UserThread.java is modified to have its own pageTable variable.
