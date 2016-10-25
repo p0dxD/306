@@ -50,10 +50,9 @@ import nachos.kernel.threads.SpinLock;
  * @author Eugene W. Stark (Stony Brook University)
  */
 public class AddrSpace {
-   
+
   /** Page table that describes a virtual-to-physical address mapping. */
   private TranslationEntry pageTable[];
-
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
   
@@ -71,13 +70,18 @@ public class AddrSpace {
   
   public static HashMap<Integer, AddrSpace> addresses = new HashMap<>();
   
-  public int getUserStackSize(){
+  public static int getUserStackSize(){
       return AddrSpace.UserStackSize;
   }
   
-  
+  public int getPageTableLength(){
+      return pageTable.length;
+  }
+  public TranslationEntry[] getPageTable(){
+      return this.pageTable;
+  }
   /**
-   * Create a new address space.
+   * Constructor for a new address space.
    */
   public AddrSpace() { 
       
@@ -106,10 +110,8 @@ public class AddrSpace {
   public int exec(OpenFile executable) {
     NoffHeader noffH;
     long size;
-    
     if((noffH = NoffHeader.readHeader(executable)) == null)
 	return(-1);
-
     // how big is address space?
     size = roundToPage(noffH.code.size)
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
@@ -121,7 +123,6 @@ public class AddrSpace {
 
   public String getStringFromAddress(long address, AddrSpace space){
 
-	
 	StringBuilder string  = new StringBuilder();
 	char tmp;
 	while((tmp =space.getMeCharAtAddress(address)) != '\0'){
@@ -129,23 +130,31 @@ public class AddrSpace {
 	    string.append(tmp);
 	    address++;
 	}
-	
 	return string.toString();
   }
   
-  //Calculate the 
+  //get the char at the physical index. 
   public char getMeCharAtAddress(long address){
-
+      int physicalIndexAddress = convertVirtualToPhysicalIndex(address);
+      return (char)Machine.mainMemory[physicalIndexAddress];
+  }
+  
+  /*
+   * Takes in a virtual index within the virtual page table, and returns the 
+   * index within the  physical page table in main memory. 
+   */
+  public int convertVirtualToPhysicalIndex(long address){
       int virtualIndex = (int)address/Machine.PageSize;
       int virtualOffset = (int)address%Machine.PageSize;
       lockMaping.acquire();
       ArrayList<Integer> physicalPages = maping.get(this.SpaceId);
       lockMaping.release();
+
       //the actual physical address
       int physicalIndexAddress  = physicalPages.get(virtualIndex)*Machine.PageSize + virtualOffset;
-      
-      return (char)Machine.mainMemory[physicalIndexAddress];
+      return physicalIndexAddress;
   }
+  
   /**
    * Initialize the user-level register set to values appropriate for
    * starting execution of a user program loaded in this address space.
@@ -155,7 +164,6 @@ public class AddrSpace {
    */
   public void initRegisters() {
     int i;
-   
     for (i = 0; i < MIPS.NumTotalRegs; i++)
       CPU.writeRegister(i, 0);
 
@@ -200,10 +208,13 @@ public class AddrSpace {
     CPU.setPageTable(pageTable);
   }
 
-  
+  /* 
+   * Returns this spaceId variable. 
+   */
   public int getSpaceId(){
       return this.SpaceId;
   }
+  
   /**
    * Utility method for rounding up to a multiple of CPU.PageSize;
    */
@@ -251,12 +262,10 @@ public class AddrSpace {
   }
   
       /**
-       * 
+       * Checks the memory management unit whether we can accomdate a request for physical page tables. 
        * @param byteSize
        */
       public void getFreePages(long byteSize, int SpaceId, NoffHeader noffH,OpenFile executable){
-	  
-	 
 	  int numPages = (int)(byteSize / Machine.PageSize);
 	    Debug.ASSERT((numPages <= Machine.NumPhysPages),// check we're not trying
 			 "AddrSpace constructor: Not enough memory!");
@@ -321,7 +330,6 @@ public class AddrSpace {
       public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){	  
 	  for(int i = 0; i < physical.size();i++){
 	      executable.read(Machine.mainMemory, physical.get(i)*Machine.PageSize, Machine.PageSize);
-	  
 	  }
       }
       
@@ -339,7 +347,7 @@ public class AddrSpace {
        * @param pagesNeeded
        * @return
        */
-      public ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
+      public static ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
 	  ArrayList<Integer> physicalLocation = new ArrayList<Integer>();
 	  
 	  lockPhysical.acquire();

@@ -16,14 +16,15 @@ import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
 import nachos.machine.CPU;
+import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
- * 	that can be invoked from user programs, by trapping to the kernel
- *	via the "syscall" instruction.
+ * that can be invoked from user programs, by trapping to the kernel
+ * via the "syscall" instruction.
  *
  * @author Thomas Anderson (UC Berkeley), original C++ version
  * @author Peter Druschel (Rice University), Java translation
@@ -176,9 +177,7 @@ public class Syscall {
      */
     public static int exec(String name) {
 	Debug.println('S', "User asked to exec " + name);
-	
 	String str = "ProgTest"+ 1 + "(" + name + ")";
-	
 	Debug.println('+', "starting ProgTest: " + str);
 
 	AddrSpace space = new AddrSpace();
@@ -354,13 +353,28 @@ public class Syscall {
      * new thread.
      */
     public static void fork(int func) {
+	//current thread address space
 	AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
-	//Question: how do we load the func at address into run?
+	//declare register init tasks for the new thread.
+	//Convert virtual address to physical address where the function is stored
+	int functionAddress = currentAddrSpace.convertVirtualToPhysicalIndex(func);
 	Runnable run = new Runnable(){
-	    public void run(){}
+	    public void run(){
+		//clear the mips registers
+		int i;
+		for (i = 0; i < MIPS.NumTotalRegs; i++){
+		    CPU.writeRegister(i, 0);		    
+		}		
+		//pass in user address of procedure for the user program in mem
+		CPU.writeRegister(MIPS.PCReg, functionAddress);	
+		//next user instruction due to possible branch delay
+		CPU.writeRegister(MIPS.NextPCReg, functionAddress+4);
+		int sp = currentAddrSpace.getPageTableLength()* Machine.PageSize;
+		CPU.writeRegister(MIPS.StackReg, sp);
+		Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");
+	    }
 	};
 	UserThread spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace);
-	
     }
 
     /**

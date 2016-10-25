@@ -10,19 +10,24 @@ Debugging must be run with "M" parameters.
 Overview:
 
 I.AddrSpace.java
-We implemented mapping for the program from virtual pages to physical pages. To do so, we created a static boolean vector to keep track of the physical pages that were free in the system. Therefore, when there is a request for physical page memory, we check the boolean vector to see if the space is already occupied. If it is not, we take the index of the free physical page, and map it to the virtual page of the process. 
+We implemented mapping for the program from virtual pages to physical pages. 
+To do so, we created a static boolean vector to keep track of the physical pages that were free in the system.
+ Therefore, when there is a request for physical page memory, we check the boolean vector to see if the space is already occupied. If it is not, we take the index of the free physical page, and map it to the virtual page of the process. 
 
 
 II.Syscall.java
-For forking, we created a new UserThread every time fork() is called. The newly spawned thread is constructed by sharing the address space with the currently running NachosThread. 
+a)exec():
+For Exec, we used call the exec() function in the address space. 
+
+b) Fork(): 
+For forking, we created a new UserThread every time fork() is called. 
+The newly spawned thread is constructed by sharing the address space with the currently running NachosThread. 
+It takes the user address of the function to execute, and loads it into the MIPS PC register. 
+It also calculates the address of the stack pointer for the newly spawned thread. 
 
 III.UserThread.java
-UserThread.java is modified to have its own pageTable variable. 
+UserThread.java is modified to have its own pageTable variable.
+It takes in the address space that it shares with other threads, and copies the code, init data, and uninit data section. 
+It then asks for the standard size of a stack, and calculates the amount of pages it needs. 
+Then asks for physical pages necessary to accommodate the stack size and adds it to the pageTable. 
 
-III.SynchronousQueue.java
-
-Poll(): Creates a sleeping semaphore to block the thread. Schedules callout on a runnable that V()'s on the sleep semaphore to move past the block point. 
-The poll now checks if there are any producers in the synchronous queue. If there isn't, return null. Otherwise, match with said producer. 
-
-Offer(): Creates a sleeping semaphore to block the thread. Schedules callout on a runnable that V()'s on the sleep semaphore to move past the block point. 
-The offer now checks if there are any consumers in the synchronous queue. If there isn't, return false. Otherwise match with said consumer. 
