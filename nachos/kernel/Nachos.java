@@ -39,6 +39,7 @@ import nachos.kernel.threads.test.CalloutTest;
 import nachos.kernel.threads.test.SMPTest;
 import nachos.kernel.threads.test.SynchronousQueueTest;
 import nachos.kernel.threads.test.ThreadTest;
+import nachos.kernel.userprog.test.ExecTest;
 import nachos.kernel.userprog.test.ProgTest;
 import nachos.kernel.filesys.test.FileSystemTest;
 
@@ -109,21 +110,23 @@ public class Nachos implements Runnable {
 	// Run test/demo programs, according to the supplied options.
 	// These will typically create additional threads to do the actual
 	// work, leaving the first thread free to go on and start the rest.
-//	if(options.THREAD_TEST)
-//	    ThreadTest.start();
-//	if(options.SMP_TEST)
-//	    SMPTest.start();
+	if(options.THREAD_TEST)
+	    ThreadTest.start();
+	if(options.SMP_TEST)
+	    SMPTest.start();
 	if(options.PROG_TEST)
 	    ProgTest.start();
-//	if(options.FILESYS_TEST)
-//	    FileSystemTest.start();
-//	if(options.SERIAL_TEST)
-//	    SerialTest.start();
-//	if(options.NETWORK_TEST)
-//	    NetworkTest.start();
-//	if(options.CONSOLE_TEST)
-//	    ConsoleTest.start();
+	if(options.FILESYS_TEST)
+	    FileSystemTest.start();
+	if(options.SERIAL_TEST)
+	    SerialTest.start();
+	if(options.NETWORK_TEST)
+	    NetworkTest.start();
+	if(options.CONSOLE_TEST)
+	    ConsoleTest.start();
 //	
+//	ExecTest.start();
+	
 	//test cases hw 1
 //	CalloutTest.start();
 //	SynchronousQueueTest.start();
@@ -135,7 +138,6 @@ public class Nachos implements Runnable {
 	// devices, such as timers or the console keyboard, have been
 	// started, Nachos will not shut down by itself because there is
 	// no way to tell what a future interrupt might cause to happen!
-	System.out.println("DESTROYING MAIN");
 	scheduler.finishThread();
 
     }

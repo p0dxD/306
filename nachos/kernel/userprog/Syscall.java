@@ -14,6 +14,7 @@ import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.Condition;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
@@ -70,21 +71,26 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
-
+    
+    /**Contains temporary exit status */
     static HashMap<Integer, Integer> exitStatus = new HashMap<>();
-//    static HashMap<Integer, Semaphore> programLocks = new HashMap<>();
+    
+    /**Contains temporary processes information */
     static HashMap<Integer, ProcessInformation> processes = new HashMap<>();
-//    //lock for join
-//    static Lock lock = new Lock("Lock for join");
-//    static Condition con = new Condition("Not free",lock);
+    
+    /**Lock for accessing processes and exit status a */
+    static SpinLock lockStatus = new SpinLock("Lock on the status");
+    
+    static SpinLock lockProcess = new SpinLock("Lock on the process");
+
     
     /**
      * Class to hold information about exec process
      */
-    static class ProcessInformation{
+     private class ProcessInformation{
 	int parentID;
 
-	Semaphore sem = new Semaphore("Join lock",0);
+	private Semaphore sem = new Semaphore("Join lock",0);
 	public ProcessInformation(int parentID){
 	    this.parentID = parentID;
 
@@ -119,37 +125,49 @@ public class Syscall {
     public static void exit(int status) {
 	Debug.println('+', "User program exits with status=" + status
 				+ ": " + NachosThread.currentThread().name);
-	System.out.println("Cleaning thread");
 	
 	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 	space.cleanProgram();
-//	programsThatExited.put(space.getSpaceId(),status);
-//	lock.acquire();
-//	System.out.println("GOT " + space.getSpaceId());
-//	con.signal();
-//	lock.release();
-	if(processes.containsKey(space.getSpaceId())){
-//	    programLocks.get(space.getSpaceId()).V();
+
+	//lock so no one else can access removing or adding
+	lockProcess.acquire();
+	boolean contains = processes.containsKey(space.getSpaceId());
+	lockProcess.release();
+	if(contains){
+
 	    Debug.println('S', "Calling V on exiting sempahore for join."+processes.size() +" SIZE OF exit "+exitStatus.size());
-//	    programLocks.remove(space.getSpaceId());
+
 	    //store the status of this for the parent to collect if he joins, else if is discarded for now
-	    if(AddrSpace.addresses.containsKey(processes.get(space.getSpaceId()).getParentID())){
+	    AddrSpace.lockAddrs.acquire();
+	    contains = AddrSpace.addresses.containsKey(processes.get(space.getSpaceId()).getParentID());
+	    AddrSpace.lockAddrs.release();
+	    if(contains){
 		//check if the address still alive
+		lockStatus.acquire();
 		exitStatus.put(processes.get(space.getSpaceId()).getParentID(), status);
+		lockStatus.release();
 	    }
+	    
 	    //V on it for any waiting threads
+	    lockProcess.acquire();
 	    processes.get(space.getSpaceId()).getSemaphore().V();
 	    //remove it from programs running
 	    processes.remove(space.getSpaceId());
+	    lockProcess.release();
 	}
 	//if for some reason parent leaves without joining lets discard the status
-	else if(exitStatus.containsKey(space.getSpaceId())){
+	lockStatus.acquire();
+	if(exitStatus.containsKey(space.getSpaceId())){
 	    exitStatus.remove(space.getSpaceId());
 	    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
 	}
+	lockStatus.release();
+	
+	AddrSpace.lockAddrs.acquire();
 	AddrSpace.addresses.remove(space.getSpaceId());
+	AddrSpace.lockAddrs.release();
+	
 	Nachos.scheduler.finishThread();
-	System.out.println("Returning");
     }
 
     /**
@@ -195,11 +213,12 @@ public class Syscall {
 	}, space);
 	//have a lock in case a process needs to join
 	Debug.println('S', "Adding " + space.getSpaceId() + " to possibly join.");
-//	programLocks.put(space.getSpaceId(), new Semaphore("Hold lock", 0));
+
 	//Add information about this child process to later take care of it
+	lockProcess.acquire();
 	processes.put(space.getSpaceId(), 
-		new ProcessInformation(((UserThread)NachosThread.currentThread()).space.getSpaceId()));
-	
+		new Syscall().new ProcessInformation(((UserThread)NachosThread.currentThread()).space.getSpaceId()));
+	lockProcess.release();
 	Nachos.scheduler.readyToRun(t);
 	//write back the result to the register
 	CPU.writeRegister(2, space.getSpaceId());
@@ -224,8 +243,13 @@ public class Syscall {
      */
     public static int join(int id) {
 	Debug.println('S', "Waiting to join " + id );
-	processes.get(id).getSemaphore().P();
+	lockProcess.acquire();
+	Semaphore sem = processes.get(id).getSemaphore();
+	lockProcess.release();
+	sem.P();//wait on user
+	lockStatus.acquire();
 	int status = exitStatus.remove(((UserThread)NachosThread.currentThread()).space.getSpaceId());
+	lockStatus.release();
 	Debug.println('S', "Joined " + id + ", leaving join with status " + status);
 	return status;
     }
@@ -303,7 +327,11 @@ public class Syscall {
      * @param id The OpenFileId of the file from which to read the data.
      * @return The actual number of bytes read.
      */
-    public static int read(byte buffer[], int size, int id) {return 0;}
+    public static int read(byte buffer[], int size, int id) {
+	
+	return 0;
+	
+    }
 
     /**
      * Close the file, we're done reading and writing to it.
