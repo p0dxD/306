@@ -30,6 +30,7 @@ import nachos.machine.NachosThread;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.SpinLock;
 
 /**
  * This class manages "address spaces", which are the contexts in which
@@ -57,13 +58,16 @@ public class AddrSpace {
   private static final int UserStackSize = 1024;
   
   //MEMORY MANAGEMENT AREA
-  private static ArrayList<TranslationEntry> programs = new ArrayList<>();
   //keeps track of the physical pages we have free or taken.
   static boolean[] isTaken = new boolean[Machine.NumPhysPages];
   //stores key as the address spaceId, and the value as the virtual-physical page mapping within this address space. 
   static HashMap<Integer, ArrayList<Integer>> maping = new HashMap<>();
   //identifier for the address space. 
   private int SpaceId; 
+  
+  static SpinLock lockMaping = new SpinLock("Lock for maping");
+  static SpinLock lockAddrs = new SpinLock("Lock for maping");
+  static SpinLock lockPhysical = new SpinLock("Lock for maping");
   
   public static HashMap<Integer, AddrSpace> addresses = new HashMap<>();
   
@@ -78,8 +82,10 @@ public class AddrSpace {
   public AddrSpace() { 
       
       SpaceId = this.hashCode();
+      lockAddrs.acquire();
       addresses.put(SpaceId, this);
-      System.out.println("SPACE ID INITIALIZED " + this.SpaceId);
+      lockAddrs.release();
+
   }
 
   /**
@@ -114,12 +120,12 @@ public class AddrSpace {
   }
 
   public String getStringFromAddress(long address, AddrSpace space){
-//	System.out.println("Inside getString");
+
 	
 	StringBuilder string  = new StringBuilder();
 	char tmp;
 	while((tmp =space.getMeCharAtAddress(address)) != '\0'){
-//	    System.out.println("Got Char " + tmp);
+
 	    string.append(tmp);
 	    address++;
 	}
@@ -132,8 +138,9 @@ public class AddrSpace {
 
       int virtualIndex = (int)address/Machine.PageSize;
       int virtualOffset = (int)address%Machine.PageSize;
+      lockMaping.acquire();
       ArrayList<Integer> physicalPages = maping.get(this.SpaceId);
-      
+      lockMaping.release();
       //the actual physical address
       int physicalIndexAddress  = physicalPages.get(virtualIndex)*Machine.PageSize + virtualOffset;
       
@@ -210,33 +217,24 @@ public class AddrSpace {
    */
   public void cleanProgram(){
 
-//      int size = 0;
-//      for(boolean i: isTaken){
-//	  if(i){
-//	      size++;
-//	  }
-//      }
-      
-//      System.out.println("Cleaning size he have " + size);
-      
+      lockMaping.acquire();
       ArrayList<Integer> physical = maping.get(this.SpaceId);
+      lockMaping.release();
+      
+      lockPhysical.acquire();
       for(Integer i: physical){
 	  clearPhysPageIndex(i);
 	  isTaken[i] = false;
       }
+      lockPhysical.release();
+      
+      lockMaping.acquire();
       maping.remove(this.SpaceId);
-      
-//      size = 0;
-//      for(boolean i: isTaken){
-//	  if(i){
-//	      size++;
-//	  }
-//      }
-      
-//      System.out.println("Cleaning done new size " + size);
+      lockMaping.release();
+
       
       Debug.println('S', "Done cleaning up process.");
-//      System.out.println("Done freeing up");
+
   }
   
   
@@ -268,7 +266,9 @@ public class AddrSpace {
 	  if(isEnoughPhysMem(numPages)){
 
 	      ArrayList<Integer> physicalLocation = physicalMemoryLocation(numPages);
+	      lockMaping.acquire();
 	      maping.put(SpaceId, physicalLocation);
+	      lockMaping.release();
 	      
 	    Debug.println('a', "Initializing address space, numPages=" 
 			+ numPages + ", size=" + byteSize);
@@ -313,13 +313,12 @@ public class AddrSpace {
 	        copySegmentToPhysical(physicalLocation, executable);
 	      }
 	  }else{
-	      System.out.println("NOT ENOUGH MEM");
+
 	      Debug.print('M', "Not enough Physical mem.");
 	  }
       }
       
-      public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){
-//	  System.out.println("Coping segment" + physical.toString());	  
+      public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){	  
 	  for(int i = 0; i < physical.size();i++){
 	      executable.read(Machine.mainMemory, physical.get(i)*Machine.PageSize, Machine.PageSize);
 	  
@@ -342,6 +341,8 @@ public class AddrSpace {
        */
       public ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
 	  ArrayList<Integer> physicalLocation = new ArrayList<Integer>();
+	  
+	  lockPhysical.acquire();
 	  for(int i = 0; (i < isTaken.length) && (pagesNeeded > 0); i++){
 	      if(!isTaken[i]){
 		  physicalLocation.add(i);
@@ -349,6 +350,8 @@ public class AddrSpace {
 		  pagesNeeded--;
 	      }
 	  }
+	  lockPhysical.release();
+	  
 	  return physicalLocation;
       }
       
@@ -358,11 +361,13 @@ public class AddrSpace {
        */
       public int getFreePageNum(){
 	  int count = 0;
+	  lockPhysical.acquire();
 	  for(int i = 0; i < isTaken.length; i++){
 	      if(!isTaken[i]){
 		  count++;
 	      }
 	  }
+	  lockPhysical.release();
 	  return count;
       }
             

@@ -4,6 +4,8 @@
 
 package nachos.kernel.userprog;
 
+import java.util.ArrayList;
+
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
@@ -59,11 +61,11 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	    switch (type) {
 	    case Syscall.SC_Halt:
-		System.out.println("IN HALT");
+//		System.out.println("IN HALT");
 		Syscall.halt();
 		break;
 	    case Syscall.SC_Exit:
-		System.out.println("IN EXIT");
+//		System.out.println("IN EXIT");
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
@@ -72,21 +74,31 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exec(executable);
 		break;
 	    case Syscall.SC_Write:
-		System.out.println("IN WRITE");
+//		System.out.println("IN WRITE");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-
+		
+		System.out.println("PTR " + ptr);
+		
+		AddrSpace.lockMaping.acquire();
+//		ArrayList<Integer> physicalPages = AddrSpace.maping.get(((UserThread)NachosThread.currentThread()).space);
+//		int[] stockArr = new int[physicalPages.size()];
+//		stockArr = physicalPages.toArray(stockArr);
+		AddrSpace.lockMaping.release();
+		
+		
+		
 		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
 		//TODO:v to p
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
 	    case Syscall.SC_Yield:
-		System.out.println("IN YIELD");
+//		System.out.println("IN YIELD");
 		 Nachos.scheduler.yieldThread();
 		break;
 	    case Syscall.SC_Join:
-		System.out.println("IN JOIN");
+//		System.out.println("IN JOIN");
 		Syscall.join(CPU.readRegister(4));
 		break;
 	    }
@@ -102,8 +114,12 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    return;
 	}
 
-	System.out.println("Unexpected user mode exception " + which +
-		", " + type);
+	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
+	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+	AddrSpace.lockAddrs.acquire();
+	AddrSpace.addresses.remove(space.getSpaceId());
+	AddrSpace.lockAddrs.release();
+	Nachos.scheduler.finishThread();
 	Debug.ASSERT(false);
 
     }
