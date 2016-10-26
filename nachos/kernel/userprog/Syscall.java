@@ -20,6 +20,7 @@ import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.machine.TranslationEntry;
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
@@ -327,8 +328,18 @@ public class Syscall {
      * @return The actual number of bytes read.
      */
     public static int read(byte buffer[], int size, int id) {
-	
-	return 0;
+	  int counter = 0;
+	if (id == ConsoleInput) {
+	    byte tmp;
+	    for(int i = 0; i < size; i++) {
+		if( (tmp = (byte)Nachos.consoleDriver.getChar())!= 0x0){
+		    buffer[i] = tmp;
+		    counter++;
+		}
+		
+	    }
+	}
+	return counter;
 	
     }
 
@@ -353,18 +364,28 @@ public class Syscall {
      * new thread.
      */
     public static void fork(int func) {
+
 	//current thread address space
-	AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
-	//declare register init tasks for the new thread.
-	//Convert virtual address to physical address where the function is stored
-	int functionAddress = currentAddrSpace.convertVirtualToPhysicalIndex(func);
-	Runnable run = new Runnable(){
+	
+	AddrSpace newAddress = new AddrSpace();
+	AddrSpace parent= ((UserThread)NachosThread.currentThread()).space;
+	
+	UserThread user = new UserThread("Fork", 
+ new Runnable(){
 	    public void run(){
 		//clear the mips registers
+		AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
+		
+		parent.initThreadPageTable(newAddress);
+		
+		
+		
 		int i;
 		for (i = 0; i < MIPS.NumTotalRegs; i++){
 		    CPU.writeRegister(i, 0);		    
 		}		
+
+		int functionAddress  = parent.convertVirtualToPhysicalIndex(func);
 		//pass in user address of procedure for the user program in mem
 		CPU.writeRegister(MIPS.PCReg, functionAddress);	
 		//next user instruction due to possible branch delay
@@ -372,9 +393,16 @@ public class Syscall {
 		int sp = currentAddrSpace.getPageTableLength()* Machine.PageSize;
 		CPU.writeRegister(MIPS.StackReg, sp);
 		Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");
+		
+		newAddress.restoreState();
+		CPU.runUserCode();
 	    }
-	};
-	UserThread spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace);
+	}, newAddress);
+	
+	
+//	spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace,"Running from "+func);
+	
+	Nachos.scheduler.readyToRun(user);
     }
 
     /**

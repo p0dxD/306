@@ -117,7 +117,7 @@ public class Options {
      * enables keyboard interrupts.  Once keyboard interrupts have been enabled,
      * the simulation will run forever unless explicitly stopped.
      */
-    public int NUM_CONSOLES = 1;
+    public int NUM_CONSOLES = 10;
     
     /** The number of serial ports on the system. */
     public int NUM_PORTS = 1;

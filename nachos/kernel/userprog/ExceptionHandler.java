@@ -5,6 +5,7 @@
 package nachos.kernel.userprog;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import nachos.Debug;
 import nachos.machine.CPU;
@@ -61,48 +62,74 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	    switch (type) {
 	    case Syscall.SC_Halt:
-//		System.out.println("IN HALT");
+		Debug.println('S', "Halt syscall triggered.");
 		Syscall.halt();
 		break;
 	    case Syscall.SC_Exit:
-//		System.out.println("IN EXIT");
+		Debug.println('S', "Exit syscall triggered.");
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
+		Debug.println('S', "Exec syscall triggered.");
 		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		String executable = "test/"+space.getStringFromAddress(CPU.readRegister(4), space);
+		String executable = space.getStringFromAddress(CPU.readRegister(4), space);
 		Syscall.exec(executable);
 		break;
+	    case Syscall.SC_Read:
+		Debug.println('S', "Read syscall triggered.");
+		int a = CPU.readRegister(4);
+		int b = CPU.readRegister(5);
+		byte c[] = new byte[b];
+		
+		int s = Syscall.read(c, b, CPU.readRegister(6));
+		
+		CPU.writeRegister(2, s);
+		break;
 	    case Syscall.SC_Write:
-//		System.out.println("IN WRITE");
+		Debug.println('S', "Write syscall triggered.");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
 		
-		System.out.println("PTR " + ptr);
 		
+		
+		AddrSpace thread = ((UserThread)NachosThread.currentThread()).space;
 		AddrSpace.lockMaping.acquire();
-//		ArrayList<Integer> physicalPages = AddrSpace.maping.get(((UserThread)NachosThread.currentThread()).space);
-//		int[] stockArr = new int[physicalPages.size()];
-//		stockArr = physicalPages.toArray(stockArr);
+	
+		ArrayList<Integer> physicalPages = AddrSpace.maping.get(thread.getSpaceId());
+
+
 		AddrSpace.lockMaping.release();
 		
 		
 		
-		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
-		//TODO:v to p
+		int physicalAddress = thread.convertVirtualToPhysicalIndex(ptr);
+		
+		int size = len;
+
+		for(int i = 0; size > 0; i++){
+		    if(physicalAddress%Machine.PageSize == 0){
+			break;
+		    }
+		    buf[i] = (byte)Machine.mainMemory[physicalAddress++];
+		    size--;
+		}
+		
+		
 		Syscall.write(buf, len, CPU.readRegister(6));
+		
+		
 		break;
 	    case Syscall.SC_Yield:
-//		System.out.println("IN YIELD");
+		Debug.println('S', "Yield syscall triggered.");
 		 Nachos.scheduler.yieldThread();
 		break;
 	    case Syscall.SC_Join:
-//		System.out.println("IN JOIN");
+		Debug.println('S', "Join syscall triggered.");
 		Syscall.join(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Fork:
-//		System.out.println("IN FORK");
+		Debug.println('S', "Fork syscall triggered.");
 		Syscall.fork(CPU.readRegister(4));
 		break;
 	    }

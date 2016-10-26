@@ -19,6 +19,7 @@ import nachos.noff.NoffHeader;
 import java.util.ArrayList;
 
 import nachos.Debug;
+import nachos.kernel.devices.ConsoleDriver;
 import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
 
@@ -36,7 +37,7 @@ public class UserThread extends NachosThread {
     /** The context in which this thread will execute. */
     public final AddrSpace space;
     //each thread has its own pageTable
-    private TranslationEntry pageTable[];
+//    private TranslationEntry pageTable[];
 
     // A thread running a user program actually has *two* sets of 
     // CPU registers -- one for its state while executing user code,
@@ -47,6 +48,7 @@ public class UserThread extends NachosThread {
     /** User-level CPU register state. */
     private int userRegisters[] = new int[MIPS.NumTotalRegs];
 
+    public ConsoleDriver console;
     /**
      * Initialize a new user thread.
      *
@@ -58,40 +60,15 @@ public class UserThread extends NachosThread {
      */
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
+//	
 	space = addrSpace;
 	//find the set stack size throughout the system, then allocate mem for thread's own stack. 
-	initThreadPageTable(addrSpace.getPageTable(),AddrSpace.getUserStackSize());
+
+	
+
     }
     
-    /*
-     * Each thread has its own pageTable. However, each thread also has its own stack. 
-     * Grabs the virtual page table from the address space, shared by all threads, and then initializes
-     * its own thread pageTable. 
-     */
-    public void initThreadPageTable(TranslationEntry[] pageTable, int tablePageSize){
-	this.pageTable = new TranslationEntry[tablePageSize];
-	//calculate how many pages of the pageTable is for user stack. 
-	int pagesForStack = (int)(AddrSpace.getUserStackSize() / Machine.PageSize);
-	//copy all pages from the address space's pageTable, except for the stack space. 
-	for(int i=0;i<(tablePageSize-pagesForStack);i++){
-	    this.pageTable[i].virtualPage =pageTable[i].virtualPage;
-	    this.pageTable[i].physicalPage =pageTable[i].physicalPage;
-	    this.pageTable[i].valid =pageTable[i].valid;
-	    this.pageTable[i].use =pageTable[i].use;
-	    this.pageTable[i].dirty =pageTable[i].dirty;
-	}
-	//get free space from physical memory for this threads own stack. 
-	ArrayList<Integer> physPagesForStack = AddrSpace.physicalMemoryLocation(pagesForStack);
-	//map the retrieved free physical pages to the thread's pageTable's stack area. 
-	for(int i= (tablePageSize-pagesForStack);i<tablePageSize; i++){
-	    this.pageTable[i].virtualPage = i;
-	    this.pageTable[i].physicalPage = physPagesForStack.get((tablePageSize-pagesForStack)-i); //calculation to start iterating at 0 through pagesForStack-1
-	    this.pageTable[i].valid = true;
-	    this.pageTable[i].use= false;
-	    this.pageTable[i].dirty= false;
-	}
-		
-    }
+
     
     /**
      * Save the CPU state of a user program on a context switch.

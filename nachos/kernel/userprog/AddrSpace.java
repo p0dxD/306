@@ -80,6 +80,10 @@ public class AddrSpace {
   public TranslationEntry[] getPageTable(){
       return this.pageTable;
   }
+  
+  public void initPageTable(int size){
+      this.pageTable = new TranslationEntry[size];
+  }
   /**
    * Constructor for a new address space.
    */
@@ -117,6 +121,7 @@ public class AddrSpace {
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
 	     + UserStackSize;	// we need to increase the size
     				// to leave room for the stack
+
     getFreePages(size, SpaceId, noffH, executable);
     return(0);
   }
@@ -139,6 +144,8 @@ public class AddrSpace {
       return (char)Machine.mainMemory[physicalIndexAddress];
   }
   
+ 
+  
   /*
    * Takes in a virtual index within the virtual page table, and returns the 
    * index within the  physical page table in main memory. 
@@ -149,7 +156,6 @@ public class AddrSpace {
       lockMaping.acquire();
       ArrayList<Integer> physicalPages = maping.get(this.SpaceId);
       lockMaping.release();
-
       //the actual physical address
       int physicalIndexAddress  = physicalPages.get(virtualIndex)*Machine.PageSize + virtualOffset;
       return physicalIndexAddress;
@@ -248,6 +254,71 @@ public class AddrSpace {
 
   }
   
+  /*
+   * Each thread has its own pageTable. However, each thread also has its own stack. 
+   * Grabs the virtual page table from the address space, shared by all threads, and then initializes
+   * its own thread pageTable. 
+   */
+  public  void initThreadPageTable(AddrSpace space){
+      	space.initPageTable(this.getPageTableLength());
+      	TranslationEntry[] pageTable = space.getPageTable();
+      	
+
+
+	//calculate how many pages of the pageTable is for user stack. 
+	int pagesForStack = (int)(AddrSpace.getUserStackSize() / Machine.PageSize);
+	//copy all pages from the address space's pageTable, except for the stack space. 
+	
+	for(int i=0; i < (this.getPageTableLength()-pagesForStack);i++){
+
+	    pageTable[i] = new TranslationEntry();
+	    pageTable[i].virtualPage = this.pageTable[i].virtualPage;
+	    
+	    pageTable[i].physicalPage = this.pageTable[i].physicalPage;
+	    pageTable[i].valid =this.pageTable[i].valid;
+	    pageTable[i].use =this.pageTable[i].use;
+	    pageTable[i].dirty =this.pageTable[i].dirty;
+	}
+	ArrayList<Integer> physical = new ArrayList<>();
+	
+	lockMaping.acquire();
+	ArrayList<Integer> parent = maping.get(this.SpaceId);
+	
+	
+	for(int i =0; i < (this.getPageTableLength()-pagesForStack); i++){
+	    physical.add(parent.get(i));
+	}
+	
+	lockMaping.release();
+	
+	//get free space from physical memory for this threads own stack. 
+	ArrayList<Integer> physPagesForStack = AddrSpace.physicalMemoryLocation(pagesForStack);
+	//map the retrieved free physical pages to the thread's pageTable's stack area. 
+	for(int i= (this.getPageTableLength()-pagesForStack);i<this.getPageTableLength(); i++){
+	    pageTable[i] = new TranslationEntry();
+	    pageTable[i].virtualPage = i;
+	    pageTable[i].physicalPage = physPagesForStack.get(i-(this.getPageTableLength()-pagesForStack)); //calculation to start iterating at 0 through pagesForStack-1
+	    pageTable[i].valid = true;
+	    pageTable[i].use= false;
+	    pageTable[i].dirty= false;
+	}
+	
+	for(int i= 0;i< physPagesForStack.size(); i++){
+	    physical.add(physPagesForStack.get(i));
+	}
+	
+	      lockMaping.acquire();
+	      maping.put(space.SpaceId, physical);
+	      lockMaping.release();
+		
+  }
+  
+  public static byte[] getPageArrayAtIndex(int index){
+      byte arr[] = new byte[Machine.PageSize];
+      
+      System.arraycopy(Machine.mainMemory, index*Machine.PageSize, arr, 0, Machine.PageSize);
+      return arr;
+  }
   
   /*
    *  clears the physical page, of size Machine.PageSize. Calculates the physical page index offset in main memory
@@ -277,6 +348,7 @@ public class AddrSpace {
 	      ArrayList<Integer> physicalLocation = physicalMemoryLocation(numPages);
 	      lockMaping.acquire();
 	      maping.put(SpaceId, physicalLocation);
+
 	      lockMaping.release();
 	      
 	    Debug.println('a', "Initializing address space, numPages=" 
