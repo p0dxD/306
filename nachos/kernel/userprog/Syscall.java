@@ -366,12 +366,14 @@ public class Syscall {
     public static void fork(int func) {
 
 	//current thread address space
+
 	
 	AddrSpace newAddress = new AddrSpace();
 	AddrSpace parent= ((UserThread)NachosThread.currentThread()).space;
 	
 	UserThread user = new UserThread("Fork", 
  new Runnable(){
+
 	    public void run(){
 		//clear the mips registers
 		AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
@@ -386,6 +388,7 @@ public class Syscall {
 		}		
 
 		int functionAddress  = parent.convertVirtualToPhysicalIndex(func);
+
 		//pass in user address of procedure for the user program in mem
 		CPU.writeRegister(MIPS.PCReg, functionAddress);	
 		//next user instruction due to possible branch delay
@@ -395,6 +398,7 @@ public class Syscall {
 		Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");
 		
 		newAddress.restoreState();
+
 		CPU.runUserCode();
 	    }
 	}, newAddress);
@@ -403,6 +407,7 @@ public class Syscall {
 //	spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace,"Running from "+func);
 	
 	Nachos.scheduler.readyToRun(user);
+
     }
 
     /**

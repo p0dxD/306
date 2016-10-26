@@ -17,7 +17,16 @@ public class ExecTest implements Runnable{
 	new ProgTest("test/exec1",2);
 	new ProgTest("test/exec1",3);
 	new ProgTest("test/exec1",4);
+	//new ProgTest("test/yield1",1);
+	new ProgTest("test/yield2",2);
+	/*
+	new ProgTest("test/fork1",1);
+	new ProgTest("test/fork1",2);
+	new ProgTest("test/fork1",3);
+	*/
 	Nachos.scheduler.finishThread();
     }
+    
+
     
 }

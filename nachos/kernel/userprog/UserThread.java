@@ -66,8 +66,11 @@ public class UserThread extends NachosThread {
 
 	
 
+
     }
     
+
+
 
     
     /**
@@ -101,4 +104,6 @@ public class UserThread extends NachosThread {
 	// Restore state associated with the address space.
 	space.restoreState();
     }
+    
+ 
 }
