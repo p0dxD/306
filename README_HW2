@@ -3,8 +3,7 @@
 Nachos HW2
 
 Testing:
-
-Debugging must be run with "M" parameters.  
+Execute Test via ExecTest.java when nachos starts up. It creates ProgTest threads that run the respective C programs. 
 
 
 Overview:
@@ -12,7 +11,8 @@ Overview:
 I.AddrSpace.java
 We implemented mapping for the program from virtual pages to physical pages. 
 To do so, we created a static boolean vector to keep track of the physical pages that were free in the system.
- Therefore, when there is a request for physical page memory, we check the boolean vector to see if the space is already occupied. If it is not, we take the index of the free physical page, and map it to the virtual page of the process. 
+ Therefore, when there is a request for physical page memory, we check the boolean vector to see if the space is already occupied. 
+ If it is not, we take the index of the free physical page, and map it to the virtual page of the process. 
 
 
 II.Syscall.java
@@ -31,11 +31,16 @@ c) Yield():
 Links the system call to the scheduler's yield() function. 
 
 d) Join():
-AddrSpaces are stored in hashtable, linked with the 
+AddrSpaces are stored in hashMap, which the exit status of the child process as values. 
+When the child process returns, will V() on the semaphore and modify the exit status 
+for the ProcessInformation object. This will wake up the parent thread if it is blocking. 
+Then, the parent thread will check the hashMap and grab the ProcessInformation to check the exit status of the child. 
+
 
 III.UserThread.java
-UserThread.java is modified to have its own pageTable variable.
-It takes in the address space that it shares with other threads, and copies the code, init data, and uninit data section. 
-It then asks for the standard size of a stack, and calculates the amount of pages it needs. 
-Then asks for physical pages necessary to accommodate the stack size and adds it to the pageTable. 
+Has variable for the console that the thread uses. 
+
+IV.ConsoleManager
+contains a boolean array to keep track of used consoles. Instantiates consoles and returns them for fulfilling requests. 
+
 
