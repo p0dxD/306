@@ -44,3 +44,9 @@ IV.ConsoleManager
 contains a boolean array to keep track of used consoles. Instantiates consoles and returns them for fulfilling requests. 
 Console is not fully implemented. 
 
+
+To see output have the debug flag S set, also the class ExecTest contains varios runs of programs specifically made to test the different
+components that were individually done, mixing up all the syscalls. 
+The fork behaves strangely, but according to the professor is expected.
+ 
+

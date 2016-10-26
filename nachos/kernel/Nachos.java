@@ -125,7 +125,8 @@ public class Nachos implements Runnable {
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
 //	
-//	ExecTest.start();
+	Debug.println('S', "Running HW 2 TEST");
+	ExecTest.start();
 	
 	//test cases hw 1
 //	CalloutTest.start();
