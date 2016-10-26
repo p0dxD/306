@@ -42,5 +42,5 @@ Has variable for the console that the thread uses.
 
 IV.ConsoleManager
 contains a boolean array to keep track of used consoles. Instantiates consoles and returns them for fulfilling requests. 
-
+Console is not fully implemented. 
 
