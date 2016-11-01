@@ -15,9 +15,9 @@
 int
 main()
 {
-    Write("In halt2\n", 9, 1);
+    Write("In halt2\r\n", 10, 1);
      //Halt();
     /* not reached */
-    Write("Failed\n", 7, 1);
+    //Write("Failed\n", 7, 1);
     Exit(5);
 }

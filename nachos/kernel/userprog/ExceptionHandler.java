@@ -57,7 +57,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
    */
     public void handleException(int which) {
 	int type = CPU.readRegister(2);
-
+	System.out.println("TYPE: " + type + (Syscall.SC_Halt==type));
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
@@ -80,58 +80,40 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int a = CPU.readRegister(4);
 		int b = CPU.readRegister(5);
 		byte c[] = new byte[b];
-		
+		AddrSpace t = ((UserThread)NachosThread.currentThread()).space;
+
 		int s = Syscall.read(c, b, CPU.readRegister(6));
-		
+		AddrSpace.writeByteArrayToPhysicalMem(a, t, c);
+
 		CPU.writeRegister(2, s);
+
 		break;
+		
 	    case Syscall.SC_Write:
 		Debug.println('S', "Write syscall triggered.");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-		
-		
-		
-		AddrSpace thread = ((UserThread)NachosThread.currentThread()).space;
-		AddrSpace.lockMaping.acquire();
-	
-		ArrayList<Integer> physicalPages = AddrSpace.maping.get(thread.getSpaceId());
-
-
-		AddrSpace.lockMaping.release();
-		
-		
-		
-		int physicalAddress = thread.convertVirtualToPhysicalIndex(ptr);
-		
-		int size = len;
-
-		for(int i = 0; size > 0; i++){
-		    if(physicalAddress%Machine.PageSize == 0){
-			break;
-		    }
-		    buf[i] = (byte)Machine.mainMemory[physicalAddress++];
-		    size--;
-		}
-		
-		
+		AddrSpace.getCharsFromMemory(ptr, ((UserThread)NachosThread.currentThread()).space, len, buf);
 		Syscall.write(buf, len, CPU.readRegister(6));
-		
-		
 		break;
+		
 	    case Syscall.SC_Yield:
 		Debug.println('S', "Yield syscall triggered.");
-		 Nachos.scheduler.yieldThread();
+		Syscall.yield();
 		break;
+		
 	    case Syscall.SC_Join:
 		Debug.println('S', "Join syscall triggered.");
-		Syscall.join(CPU.readRegister(4));
+		int status = Syscall.join(CPU.readRegister(4));
+		CPU.writeRegister(2, status);
 		break;
+		
 	    case Syscall.SC_Fork:
 		Debug.println('S', "Fork syscall triggered.");
 		Syscall.fork(CPU.readRegister(4));
 		break;
+
 	    }
 
 	    // Update the program counter to point to the next instruction
@@ -143,14 +125,14 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    CPU.writeRegister(MIPS.NextPCReg,
 		    CPU.readRegister(MIPS.NextPCReg)+4);
 	    return;
+	}else if(which == MachineException.PageFaultException){
+	    System.out.println("PageFaultException");
+	}else if(which == MachineException.IllegalInstrException){
+	    System.out.println("IllegalInstrException hashdashdlsajdajksdhaksj");
 	}
-
+	
 	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
-	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-	AddrSpace.lockAddrs.acquire();
-	AddrSpace.addresses.remove(space.getSpaceId());
-	AddrSpace.lockAddrs.release();
-	Nachos.scheduler.finishThread();
+	AddrSpace.finishAddrs(((UserThread)NachosThread.currentThread()).space);
 	Debug.ASSERT(false);
 
     }

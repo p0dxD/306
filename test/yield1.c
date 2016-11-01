@@ -6,10 +6,10 @@
 int main()
 {
   int i=0;
-  while(i<=10){
+  while(i<=100){
   	i++;
   	Yield();
-  	Write("looped yield1\n",14,1);
+  	Write("looped yield1\r\n",15,1);
   }
   Exit(0);
 }

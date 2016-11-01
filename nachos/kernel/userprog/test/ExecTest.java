@@ -13,11 +13,11 @@ public class ExecTest implements Runnable{
     @Override
     public void run() {
 	// TODO Auto-generated method stub
-	new ProgTest("test/exec1",1);
-	new ProgTest("test/exec1",2);
-
-	
-	new ProgTest("test/yield1",1);
+//	new ProgTest("test/exec1",1);
+//	new ProgTest("test/exec1",2);
+//
+//	
+//	new ProgTest("test/yield1",1);
 	new ProgTest("test/yield2",2);
 	
 	
@@ -25,7 +25,7 @@ public class ExecTest implements Runnable{
 	
 	//THE FORK IS MESSED UP, but is normal
 	//can be tested individually
-	new ProgTest("test/fork1",1);
+//	new ProgTest("test/fork1",1);
 	
 	Nachos.scheduler.finishThread();
     }

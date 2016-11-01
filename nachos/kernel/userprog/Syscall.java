@@ -149,7 +149,9 @@ public class Syscall {
 	    }
 	    
 	    //V on it for any waiting threads
+//	    System.out.println("BEFORE");
 	    lockProcess.acquire();
+//	    System.out.println("ACQUIRED");
 	    processes.get(space.getSpaceId()).getSemaphore().V();
 	    //remove it from programs running
 	    processes.remove(space.getSpaceId());
@@ -166,7 +168,6 @@ public class Syscall {
 	AddrSpace.lockAddrs.acquire();
 	AddrSpace.addresses.remove(space.getSpaceId());
 	AddrSpace.lockAddrs.release();
-	
 	Nachos.scheduler.finishThread();
     }
 
@@ -182,21 +183,50 @@ public class Syscall {
 	Debug.println('+', "starting ProgTest: " + str);
 
 	AddrSpace space = new AddrSpace();
+	
 	UserThread t = new UserThread(name, new Runnable(){
 	    public void run(){
 		Debug.println('S', "Exec running " + name);
 
 		OpenFile executable;
-
+		AddrSpace space_child = ((UserThread)NachosThread.currentThread()).space;
+		
 		if((executable = Nachos.fileSystem.open(name)) == null) {
-		    Debug.println('+', "Unable to open executable file: " + name);
+		    Debug.println('+', "Unable to open executable file 1: " + name);
+		    lockProcess.acquire();
+		    processes.get(space_child.getSpaceId()).getSemaphore().V();
+		    //remove it from programs running	
+		    processes.remove(space_child.getSpaceId());
+		    lockProcess.release();
+
+//		
+//			lockStatus.acquire();
+//			if(exitStatus.containsKey(space_child.getSpaceId())){
+//			    exitStatus.remove(space_child.getSpaceId());
+//			    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
+//			}
+//			lockStatus.release();
+//			System.out.println("ERROR");
 		    Nachos.scheduler.finishThread();
 		    return;
 		}
 
-		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 		if(space.exec(executable) == -1) {
-		    Debug.println('+', "Unable to read executable file: " + name);
+		    Debug.println('+', "Unable to read executable file 2: " + name);
+		    lockProcess.acquire();
+		    processes.get(space_child.getSpaceId()).getSemaphore().V();
+		    //remove it from programs running
+		    processes.remove(space_child.getSpaceId());
+		    lockProcess.release();
+		    
+		    
+			lockStatus.acquire();
+			if(exitStatus.containsKey(space_child.getSpaceId())){
+			    exitStatus.remove(space_child.getSpaceId());
+			    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
+			}
+			lockStatus.release();
+//			System.out.println("ERROR");
 		    Nachos.scheduler.finishThread();
 		    return;
 		}
@@ -222,6 +252,7 @@ public class Syscall {
 	Nachos.scheduler.readyToRun(t);
 	//write back the result to the register
 	CPU.writeRegister(2, space.getSpaceId());
+//	System.out.println("Resuturning");
 	return space.getSpaceId();
     }
     
@@ -243,12 +274,21 @@ public class Syscall {
      */
     public static int join(int id) {
 	Debug.println('S', "Waiting to join " + id );
+	Semaphore sem;
 	lockProcess.acquire();
-	Semaphore sem = processes.get(id).getSemaphore();
+	if(processes.containsKey(id)){
+	   sem = processes.get(id).getSemaphore();
+	}else{
+	    lockProcess.release();
+	    return 0;//return user not found
+	}
 	lockProcess.release();
-	sem.P();//wait on user
+	
+	sem.P();
+
 	lockStatus.acquire();
-	int status = exitStatus.remove(((UserThread)NachosThread.currentThread()).space.getSpaceId());
+	int status = 0;
+	status = exitStatus.remove(((UserThread)NachosThread.currentThread()).space.getSpaceId());
 	lockStatus.release();
 	Debug.println('S', "Joined " + id + ", leaving join with status " + status);
 	return status;
@@ -340,7 +380,6 @@ public class Syscall {
 	    }
 	}
 	return counter;
-	
     }
 
     /**
@@ -387,7 +426,7 @@ public class Syscall {
 		    CPU.writeRegister(i, 0);		    
 		}		
 
-		int functionAddress  = parent.convertVirtualToPhysicalIndex(func);
+		int functionAddress  = AddrSpace.convertVirtualToPhysicalIndex(func, parent);
 
 		//pass in user address of procedure for the user program in mem
 		CPU.writeRegister(MIPS.PCReg, functionAddress);	
@@ -414,6 +453,8 @@ public class Syscall {
      * Yield the CPU to another runnable thread, whether in this address space 
      * or not. 
      */
-    public static void yield() {}
+    public static void yield() {
+	Nachos.scheduler.yieldThread();
+    }
 
 }

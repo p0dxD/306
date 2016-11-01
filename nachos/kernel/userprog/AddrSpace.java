@@ -29,6 +29,7 @@ import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
+import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.SpinLock;
 
@@ -125,12 +126,12 @@ public class AddrSpace {
     getFreePages(size, SpaceId, noffH, executable);
     return(0);
   }
-
-  public String getStringFromAddress(long address, AddrSpace space){
+  
+  public  String getStringFromAddress(long address, AddrSpace space){
 
 	StringBuilder string  = new StringBuilder();
 	char tmp;
-	while((tmp =space.getMeCharAtAddress(address)) != '\0'){
+	while((tmp =AddrSpace.getMeCharAtAddress(address, space)) != '\0'){
 
 	    string.append(tmp);
 	    address++;
@@ -138,9 +139,48 @@ public class AddrSpace {
 	return string.toString();
   }
   
+  public static void getCharsFromMemory(int address, AddrSpace space, int len, byte[] buf) {
+	char i = 0;
+	while(i < len){	  
+	    buf[i] = (byte)AddrSpace.getMeCharAtAddress(address, space);
+	    address++;
+	    i++;
+	}
+
+  }
+  
+  public static int writeByteArrayToPhysicalMem(int address, AddrSpace space, byte[] arr){
+      int sizeWritten = 0;
+      while(sizeWritten < arr.length){
+	  writeCharToPhysicalMem(address,space, arr[sizeWritten]);
+	  sizeWritten++;
+	  address++;
+      }
+      
+      return sizeWritten;
+      
+  }
+  /**
+   * Writes a char to indicated memory location
+   * @param address where to start writing to
+   * @param c character to write
+   * @return new address location
+   */
+  public static void writeCharToPhysicalMem(int address, AddrSpace space, byte c){
+      int physicalIndexAddress = convertVirtualToPhysicalIndex(address, space);
+      Machine.mainMemory[physicalIndexAddress] = c;
+  }
+  
+  public static void finishAddrs(AddrSpace space){
+	AddrSpace.lockAddrs.acquire();
+	AddrSpace.addresses.remove(space.getSpaceId());
+	AddrSpace.lockAddrs.release();
+	Nachos.scheduler.finishThread();
+  }
+  
   //get the char at the physical index. 
-  public char getMeCharAtAddress(long address){
-      int physicalIndexAddress = convertVirtualToPhysicalIndex(address);
+  public static char getMeCharAtAddress(long address, AddrSpace space){
+      int physicalIndexAddress = convertVirtualToPhysicalIndex(address, space);
       return (char)Machine.mainMemory[physicalIndexAddress];
   }
   
@@ -150,14 +190,14 @@ public class AddrSpace {
    * Takes in a virtual index within the virtual page table, and returns the 
    * index within the  physical page table in main memory. 
    */
-  public int convertVirtualToPhysicalIndex(long address){
+  public static int convertVirtualToPhysicalIndex(long address, AddrSpace space){
       int virtualIndex = (int)address/Machine.PageSize;
       int virtualOffset = (int)address%Machine.PageSize;
       lockMaping.acquire();
-      ArrayList<Integer> physicalPages = maping.get(this.SpaceId);
+      ArrayList<Integer> physicalPages = maping.get(space.getSpaceId());
       lockMaping.release();
       //the actual physical address
-      int physicalIndexAddress  = physicalPages.get(virtualIndex)*Machine.PageSize + virtualOffset;
+      int physicalIndexAddress  = (physicalPages.get(virtualIndex)*Machine.PageSize) + virtualOffset;
       return physicalIndexAddress;
   }
   

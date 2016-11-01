@@ -17,10 +17,10 @@ main()
   for(i=0;i<ARRAYSIZE;i++)
     sum += A[i];
 
-  if(sum==90) {
-    Write("OK\n", 3, 1);
-  } else {
-    Write("Broken\n", 7, 1);
-  }
+//   if(sum==90) {
+//     Write("OK\n", 3, 1);
+//   } else {
+//     Write("Broken\n", 7, 1);
+//   }
   Exit(0);
 }

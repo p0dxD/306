@@ -13,13 +13,13 @@ while(i <10){
   i++;
   }
 
-  Write("Exect1\n", 9, 1);
+  Write("Exect1\r\n", 8, 1);
   //Yield();
   Exit(0);
   //Halt();
 }
 
 int fork(){
-	Write("test\n", 10, 1);
+	Write("test\r\n", 6, 1);
 	Exit(0);
 }
