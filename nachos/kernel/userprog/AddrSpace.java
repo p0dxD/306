@@ -59,17 +59,13 @@ public class AddrSpace {
   
   //MEMORY MANAGEMENT AREA
   //keeps track of the physical pages we have free or taken.
-  static boolean[] isTaken = new boolean[Machine.NumPhysPages];
+//  static int[] isTaken = new int[Machine.NumPhysPages];
   //stores key as the address spaceId, and the value as the virtual-physical page mapping within this address space. 
-  static HashMap<Integer, ArrayList<Integer>> maping = new HashMap<>();
+//  static HashMap<Integer, ArrayList<Integer>> maping = new HashMap<>();
   //identifier for the address space. 
   private int SpaceId; 
-  
-  static SpinLock lockMaping = new SpinLock("Lock for maping");
-  static SpinLock lockAddrs = new SpinLock("Lock for maping");
-  static SpinLock lockPhysical = new SpinLock("Lock for maping");
-  
-  public static HashMap<Integer, AddrSpace> addresses = new HashMap<>();
+  private MemManager memManager = MemManager.getInstance();
+ 
   
   public static int getUserStackSize(){
       return AddrSpace.UserStackSize;
@@ -91,9 +87,8 @@ public class AddrSpace {
   public AddrSpace() { 
       
       SpaceId = this.hashCode();
-      lockAddrs.acquire();
-      addresses.put(SpaceId, this);
-      lockAddrs.release();
+      //add code to add this address space
+      memManager.addNewAddrSpace(SpaceId, this);
 
   }
 
@@ -123,83 +118,13 @@ public class AddrSpace {
 	     + UserStackSize;	// we need to increase the size
     				// to leave room for the stack
 
-    getFreePages(size, SpaceId, noffH, executable);
-    return(0);
+    int status = getFreePages(size, SpaceId, noffH, executable);
+    return status;
   }
   
-  public  String getStringFromAddress(long address, AddrSpace space){
 
-	StringBuilder string  = new StringBuilder();
-	char tmp;
-	while((tmp =AddrSpace.getMeCharAtAddress(address, space)) != '\0'){
-
-	    string.append(tmp);
-	    address++;
-	}
-	return string.toString();
-  }
-  
-  public static void getCharsFromMemory(int address, AddrSpace space, int len, byte[] buf) {
-	char i = 0;
-	while(i < len){	  
-	    buf[i] = (byte)AddrSpace.getMeCharAtAddress(address, space);
-	    address++;
-	    i++;
-	}
-
-  }
-  
-  public static int writeByteArrayToPhysicalMem(int address, AddrSpace space, byte[] arr){
-      int sizeWritten = 0;
-      while(sizeWritten < arr.length){
-	  writeCharToPhysicalMem(address,space, arr[sizeWritten]);
-	  sizeWritten++;
-	  address++;
-      }
-      
-      return sizeWritten;
-      
-  }
-  /**
-   * Writes a char to indicated memory location
-   * @param address where to start writing to
-   * @param c character to write
-   * @return new address location
-   */
-  public static void writeCharToPhysicalMem(int address, AddrSpace space, byte c){
-      int physicalIndexAddress = convertVirtualToPhysicalIndex(address, space);
-      Machine.mainMemory[physicalIndexAddress] = c;
-  }
-  
-  public static void finishAddrs(AddrSpace space){
-	AddrSpace.lockAddrs.acquire();
-	AddrSpace.addresses.remove(space.getSpaceId());
-	AddrSpace.lockAddrs.release();
-	Nachos.scheduler.finishThread();
-  }
-  
-  //get the char at the physical index. 
-  public static char getMeCharAtAddress(long address, AddrSpace space){
-      int physicalIndexAddress = convertVirtualToPhysicalIndex(address, space);
-      return (char)Machine.mainMemory[physicalIndexAddress];
-  }
   
  
-  
-  /*
-   * Takes in a virtual index within the virtual page table, and returns the 
-   * index within the  physical page table in main memory. 
-   */
-  public static int convertVirtualToPhysicalIndex(long address, AddrSpace space){
-      int virtualIndex = (int)address/Machine.PageSize;
-      int virtualOffset = (int)address%Machine.PageSize;
-      lockMaping.acquire();
-      ArrayList<Integer> physicalPages = maping.get(space.getSpaceId());
-      lockMaping.release();
-      //the actual physical address
-      int physicalIndexAddress  = (physicalPages.get(virtualIndex)*Machine.PageSize) + virtualOffset;
-      return physicalIndexAddress;
-  }
   
   /**
    * Initialize the user-level register set to values appropriate for
@@ -209,6 +134,7 @@ public class AddrSpace {
    * that we can immediately jump to user code.
    */
   public void initRegisters() {
+     Debug.println('S', "INSIDE INIT REGISTERS");
     int i;
     for (i = 0; i < MIPS.NumTotalRegs; i++)
       CPU.writeRegister(i, 0);
@@ -229,7 +155,23 @@ public class AddrSpace {
     CPU.writeRegister(MIPS.StackReg, sp);
     Debug.println('a', "Initializing stack register to " + sp);
   }
-
+  /**
+   * Initializes the register pointers to start execution
+   * @param func of where to start execution
+   */
+  public void initRegistersFork(int func){
+	for (int i = 0; i < MIPS.NumTotalRegs; i++){
+	    CPU.writeRegister(i, 0);		    
+	}		
+	//pass in user address of procedure for the user program in mem
+	//to start from
+	CPU.writeRegister(MIPS.PCReg, func);	
+	//next user instruction due to possible branch delay
+	CPU.writeRegister(MIPS.NextPCReg, func+4);
+	int sp = this.getPageTableLength()* Machine.PageSize;
+	CPU.writeRegister(MIPS.StackReg, sp);
+	Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");	
+  }
   /**
    * On a context switch, save any machine state, specific
    * to this address space, that needs saving.
@@ -269,90 +211,7 @@ public class AddrSpace {
   }
   
   
-  /**
-   * 
-   */
-  public void cleanProgram(){
 
-      lockMaping.acquire();
-      ArrayList<Integer> physical = maping.get(this.SpaceId);
-      lockMaping.release();
-      
-      lockPhysical.acquire();
-      for(Integer i: physical){
-	  clearPhysPageIndex(i);
-	  isTaken[i] = false;
-      }
-      lockPhysical.release();
-      
-      lockMaping.acquire();
-      maping.remove(this.SpaceId);
-      lockMaping.release();
-
-      
-      Debug.println('S', "Done cleaning up process.");
-
-  }
-  
-  /*
-   * Each thread has its own pageTable. However, each thread also has its own stack. 
-   * Grabs the virtual page table from the address space, shared by all threads, and then initializes
-   * its own thread pageTable. 
-   */
-  public  void initThreadPageTable(AddrSpace space){
-      	space.initPageTable(this.getPageTableLength());
-      	TranslationEntry[] pageTable = space.getPageTable();
-      	
-
-
-	//calculate how many pages of the pageTable is for user stack. 
-	int pagesForStack = (int)(AddrSpace.getUserStackSize() / Machine.PageSize);
-	//copy all pages from the address space's pageTable, except for the stack space. 
-	
-	for(int i=0; i < (this.getPageTableLength()-pagesForStack);i++){
-
-	    pageTable[i] = new TranslationEntry();
-	    pageTable[i].virtualPage = this.pageTable[i].virtualPage;
-	    
-	    pageTable[i].physicalPage = this.pageTable[i].physicalPage;
-	    pageTable[i].valid =this.pageTable[i].valid;
-	    pageTable[i].use =this.pageTable[i].use;
-	    pageTable[i].dirty =this.pageTable[i].dirty;
-	}
-	ArrayList<Integer> physical = new ArrayList<>();
-	
-	lockMaping.acquire();
-	ArrayList<Integer> parent = maping.get(this.SpaceId);
-	
-	
-	for(int i =0; i < (this.getPageTableLength()-pagesForStack); i++){
-	    physical.add(parent.get(i));
-	}
-	
-	lockMaping.release();
-	
-	//get free space from physical memory for this threads own stack. 
-	ArrayList<Integer> physPagesForStack = AddrSpace.physicalMemoryLocation(pagesForStack);
-	//map the retrieved free physical pages to the thread's pageTable's stack area. 
-	for(int i= (this.getPageTableLength()-pagesForStack);i<this.getPageTableLength(); i++){
-	    pageTable[i] = new TranslationEntry();
-	    pageTable[i].virtualPage = i;
-	    pageTable[i].physicalPage = physPagesForStack.get(i-(this.getPageTableLength()-pagesForStack)); //calculation to start iterating at 0 through pagesForStack-1
-	    pageTable[i].valid = true;
-	    pageTable[i].use= false;
-	    pageTable[i].dirty= false;
-	}
-	
-	for(int i= 0;i< physPagesForStack.size(); i++){
-	    physical.add(physPagesForStack.get(i));
-	}
-	
-	      lockMaping.acquire();
-	      maping.put(space.SpaceId, physical);
-	      lockMaping.release();
-		
-  }
-  
   public static byte[] getPageArrayAtIndex(int index){
       byte arr[] = new byte[Machine.PageSize];
       
@@ -360,36 +219,22 @@ public class AddrSpace {
       return arr;
   }
   
-  /*
-   *  clears the physical page, of size Machine.PageSize. Calculates the physical page index offset in main memory
-   *  Then zeroes out the size of one page. 
-   */
-  public void clearPhysPageIndex(int physPageIndex){
-      int startIndex = physPageIndex*Machine.PageSize;
-      for(int i=0;i<Machine.PageSize;i++){
-	  Machine.mainMemory[startIndex]= (byte)0;
-	  startIndex++;
-      }
-  }
   
       /**
        * Checks the memory management unit whether we can accomdate a request for physical page tables. 
        * @param byteSize
        */
-      public void getFreePages(long byteSize, int SpaceId, NoffHeader noffH,OpenFile executable){
+      public int getFreePages(long byteSize, int SpaceId, NoffHeader noffH,OpenFile executable){
 	  int numPages = (int)(byteSize / Machine.PageSize);
 	    Debug.ASSERT((numPages <= Machine.NumPhysPages),// check we're not trying
 			 "AddrSpace constructor: Not enough memory!");
 	                                                // to run anything too big --
 							// at least until we have
 							// virtual memory
-	  if(isEnoughPhysMem(numPages)){
+	  if(memManager.isEnoughPhysMem(numPages)){
 
-	      ArrayList<Integer> physicalLocation = physicalMemoryLocation(numPages);
-	      lockMaping.acquire();
-	      maping.put(SpaceId, physicalLocation);
-
-	      lockMaping.release();
+	      ArrayList<Integer> physicalLocation = memManager.physicalMemoryLocation(numPages);
+	      memManager.addPhysicalLocationForSpaceId(SpaceId,physicalLocation);
 	      
 	    Debug.println('a', "Initializing address space, numPages=" 
 			+ numPages + ", size=" + byteSize);
@@ -409,7 +254,7 @@ public class AddrSpace {
 	      
 	      //zero out the memory physical location for this program 
 	      for(int i = 0; i < numPages; i++)
-	  	clearPhysPageIndex(physicalLocation.get(i));
+	  	MemManager.clearPhysPageIndex(physicalLocation.get(i));
 	      
 	      // then, copy in the code and data segments into memory
 	      if (noffH.code.size > 0) {
@@ -420,7 +265,7 @@ public class AddrSpace {
 	        executable.seek(noffH.code.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);//fix convert to physical
 	        //read part by part page by page
-	        copySegmentToPhysical(physicalLocation, executable);
+	        memManager.copySegmentToPhysical(physicalLocation, executable);
 	      }
 
 	      if (noffH.initData.size > 0) {
@@ -431,64 +276,71 @@ public class AddrSpace {
 	        executable.seek(noffH.initData.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);//same as top
 	        //convert v to p
-	        copySegmentToPhysical(physicalLocation, executable);
+	        memManager.copySegmentToPhysical(physicalLocation, executable);
+	        
 	      }
+	      return 0;
 	  }else{
 
 	      Debug.print('M', "Not enough Physical mem.");
+	      return -1;
 	  }
       }
       
-      public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){	  
-	  for(int i = 0; i < physical.size();i++){
-	      executable.read(Machine.mainMemory, physical.get(i)*Machine.PageSize, Machine.PageSize);
-	  }
-      }
       
-      /**
-       * Checks if we have enough available physical pages within the machine to accomodate the requested pages. 
-       * @param pagesNeeded
-       * @return
+
+      /*
+       * Each thread has its own pageTable. However, each thread also has its own stack. 
+       * Grabs the virtual page table from the address space, shared by all threads, and then initializes
+       * its own thread pageTable. 
        */
-      public boolean isEnoughPhysMem(int pagesNeeded){
-	  return getFreePageNum() >= pagesNeeded;
-      }
+      public  int copyPageTableForForking(AddrSpace spaceChild, AddrSpace spaceParent){
+          spaceChild.initPageTable(spaceParent.getPageTableLength());
+          TranslationEntry[] pageTableChild = spaceChild.getPageTable();
+          TranslationEntry[] pageTableParent = spaceParent.getPageTable();
+          if(memManager.getPagesForStackSize() <= memManager.getFreePageNum()){//TODO:make size of stack only
+    	//calculate how many pages of the pageTable is for user stack. 
+    	int pagesForStack = memManager.getPagesForStackSize();
+    	//copy all pages from the address space's pageTable, except for the stack space. 
+    	
+    	for(int i=0; i < (spaceParent.getPageTableLength()-pagesForStack);i++){
+    	    
+    	    pageTableChild[i] = new TranslationEntry();
+    	    pageTableChild[i].virtualPage = pageTableParent[i].virtualPage;
+    	    pageTableChild[i].physicalPage = pageTableParent[i].physicalPage;
+    	    pageTableChild[i].valid =pageTableParent[i].valid;
+    	    pageTableChild[i].use =pageTableParent[i].use;
+    	    pageTableChild[i].dirty =pageTableParent[i].dirty;
+    	}
+    	ArrayList<Integer> physical = new ArrayList<>();
+    	
+    	memManager.addReferenceFromFork(spaceParent, physical);
+    	
+    	
+    	//get free space from physical memory for this threads own stack. 
+    	ArrayList<Integer> physPagesForStack = memManager.physicalMemoryLocation(pagesForStack);
+    	//map the retrieved free physical pages to the thread's pageTable's stack area. 
+    	for(int i= (spaceParent.getPageTableLength()-pagesForStack);i<spaceParent.getPageTableLength(); i++){
+    	    pageTableChild[i] = new TranslationEntry();
+    	    pageTableChild[i].virtualPage = i;
+    	    pageTableChild[i].physicalPage = physPagesForStack.get(i-(spaceParent.getPageTableLength()-pagesForStack)); //calculation to start iterating at 0 through pagesForStack-1
+    	    pageTableChild[i].valid = true;
+    	    pageTableChild[i].use= false;
+    	    pageTableChild[i].dirty= false;
+    	}
+    	
+    	for(int i= 0;i< physPagesForStack.size(); i++){
+    	    physical.add(physPagesForStack.get(i));
+    	}
+    		memManager.addPhysicalLocationForSpaceId(spaceChild.getSpaceId(), physical);
+    	      
+    	      return 0;
+          }else{
+              Debug.println('S', "Not enough memory for forking");
+              return -1;
+          }
+      }   
       
-      /**
-       * 
-       * @param pagesNeeded
-       * @return
-       */
-      public static ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
-	  ArrayList<Integer> physicalLocation = new ArrayList<Integer>();
-	  
-	  lockPhysical.acquire();
-	  for(int i = 0; (i < isTaken.length) && (pagesNeeded > 0); i++){
-	      if(!isTaken[i]){
-		  physicalLocation.add(i);
-		  isTaken[i] = true;
-		  pagesNeeded--;
-	      }
-	  }
-	  lockPhysical.release();
-	  
-	  return physicalLocation;
-      }
-      
-      /**
-       * Returns the number of physical pages that are free. 
-       * @return
-       */
-      public int getFreePageNum(){
-	  int count = 0;
-	  lockPhysical.acquire();
-	  for(int i = 0; i < isTaken.length; i++){
-	      if(!isTaken[i]){
-		  count++;
-	      }
-	  }
-	  lockPhysical.release();
-	  return count;
-      }
+
             
 }

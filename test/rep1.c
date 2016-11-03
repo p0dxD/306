@@ -99,6 +99,8 @@ char* arr =
   
   for(i=0;i<LINES;i++) {
     Write(&(arr[i*STEP]), 1, 1);
+    Write(" ", 1, 1);
+   // Write("\r", 1, 1);
   }
   Write("\n", 1, 1);
 }

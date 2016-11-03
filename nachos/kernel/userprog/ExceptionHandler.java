@@ -57,7 +57,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
    */
     public void handleException(int which) {
 	int type = CPU.readRegister(2);
-	System.out.println("TYPE: " + type + (Syscall.SC_Halt==type));
+	MemManager memManager = MemManager.getInstance();
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
@@ -72,7 +72,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Exec:
 		Debug.println('S', "Exec syscall triggered.");
 		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		String executable = space.getStringFromAddress(CPU.readRegister(4), space);
+		String executable = memManager.getStringFromAddress(CPU.readRegister(4), space);
 		Syscall.exec(executable);
 		break;
 	    case Syscall.SC_Read:
@@ -83,7 +83,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		AddrSpace t = ((UserThread)NachosThread.currentThread()).space;
 
 		int s = Syscall.read(c, b, CPU.readRegister(6));
-		AddrSpace.writeByteArrayToPhysicalMem(a, t, c);
+		memManager.writeByteArrayToPhysicalMem(a, t, c);
 
 		CPU.writeRegister(2, s);
 
@@ -94,7 +94,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-		AddrSpace.getCharsFromMemory(ptr, ((UserThread)NachosThread.currentThread()).space, len, buf);
+		memManager.getCharsFromMemory(ptr, ((UserThread)NachosThread.currentThread()).space, len, buf);
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
 		
@@ -113,7 +113,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Debug.println('S', "Fork syscall triggered.");
 		Syscall.fork(CPU.readRegister(4));
 		break;
-
+	    case Syscall.SC_PredictCPU:
+		Debug.println('S', "PredictCPU syscall triggered.");
+		Debug.println('S', "Got " + CPU.readRegister(4));
+		break;
 	    }
 
 	    // Update the program counter to point to the next instruction
@@ -129,10 +132,22 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    System.out.println("PageFaultException");
 	}else if(which == MachineException.IllegalInstrException){
 	    System.out.println("IllegalInstrException hashdashdlsajdajksdhaksj");
+	}else if(which == MachineException.NumExceptionTypes){
+	    System.out.println("NumExceptionTypes");
+	}else if(which == MachineException.OverflowException){
+	    System.out.println("OverflowException");
+	}else if(which == MachineException.NoException){
+	    System.out.println("NoException");
+	}else if(which == MachineException.SyscallException){
+	    System.out.println("SyscallException");
+	}else if(which == MachineException.AddressErrorException){
+	    System.out.println("AddressErrorException");
 	}
+	String[] str = MachineException.exceptionNames;
 	
+
 	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
-	AddrSpace.finishAddrs(((UserThread)NachosThread.currentThread()).space);
+	memManager.finishAddrs(((UserThread)NachosThread.currentThread()).space);
 	Debug.ASSERT(false);
 
     }

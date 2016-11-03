@@ -77,6 +77,16 @@ Join:
 
 	.globl Create
 	.ent	Create
+	
+PredictCPU:
+	addiu $2,$0,SC_PredictCPU
+	syscall
+	j	$31
+	.end PredictCPU
+
+	.globl PredictCPU
+	.ent	PredictCPU
+	
 Create:
 	addiu $2,$0,SC_Create
 	syscall

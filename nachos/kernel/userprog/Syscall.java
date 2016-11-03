@@ -72,6 +72,9 @@ public class Syscall {
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
     
+    /** Integer code identifying the "PredictCPU" system call.*/
+    public static final byte SC_PredictCPU = 12;
+    
     /**Contains temporary exit status */
     static HashMap<Integer, Integer> exitStatus = new HashMap<>();
     
@@ -79,11 +82,10 @@ public class Syscall {
     static HashMap<Integer, ProcessInformation> processes = new HashMap<>();
     
     /**Lock for accessing processes and exit status a */
-    static SpinLock lockStatus = new SpinLock("Lock on the status");
+    static private final SpinLock lockStatus = new SpinLock("Lock on the status");
     
-    static SpinLock lockProcess = new SpinLock("Lock on the process");
+    static private final SpinLock lockProcess = new SpinLock("Lock on the process");
 
-    
     /**
      * Class to hold information about exec process
      */
@@ -127,48 +129,25 @@ public class Syscall {
 				+ ": " + NachosThread.currentThread().name);
 	
 	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-	space.cleanProgram();
+	MemManager memManager = MemManager.getInstance();
+	memManager.cleanProgram(space);
+	
+	if(containsProcess(space)){
 
-	//lock so no one else can access removing or adding
-	lockProcess.acquire();
-	boolean contains = processes.containsKey(space.getSpaceId());
-	lockProcess.release();
-	if(contains){
+	    Debug.println('S', "Calling V on exiting sempahore for join."
+		    +processes.size() +" SIZE OF exit "+exitStatus.size());
 
-	    Debug.println('S', "Calling V on exiting sempahore for join."+processes.size() +" SIZE OF exit "+exitStatus.size());
-
-	    //store the status of this for the parent to collect if he joins, else if is discarded for now
-	    AddrSpace.lockAddrs.acquire();
-	    contains = AddrSpace.addresses.containsKey(processes.get(space.getSpaceId()).getParentID());
-	    AddrSpace.lockAddrs.release();
-	    if(contains){
-		//check if the address still alive
-		lockStatus.acquire();
-		exitStatus.put(processes.get(space.getSpaceId()).getParentID(), status);
-		lockStatus.release();
+	    //store the status of this for the parent to collect if he joins,
+	    //else if is discarded for now
+	    int parentId = getParentId(space);
+	    if(memManager.containsAddress(parentId)){
+		addExitStatus(space,status);
 	    }
-	    
-	    //V on it for any waiting threads
-//	    System.out.println("BEFORE");
-	    lockProcess.acquire();
-//	    System.out.println("ACQUIRED");
-	    processes.get(space.getSpaceId()).getSemaphore().V();
-	    //remove it from programs running
-	    processes.remove(space.getSpaceId());
-	    lockProcess.release();
+	    removeAndReleaseProcessSem( space);
 	}
 	//if for some reason parent leaves without joining lets discard the status
-	lockStatus.acquire();
-	if(exitStatus.containsKey(space.getSpaceId())){
-	    exitStatus.remove(space.getSpaceId());
-	    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
-	}
-	lockStatus.release();
-	
-	AddrSpace.lockAddrs.acquire();
-	AddrSpace.addresses.remove(space.getSpaceId());
-	AddrSpace.lockAddrs.release();
-	Nachos.scheduler.finishThread();
+	discardStatus(space);
+	memManager.finishAddrs(space);
     }
 
     /**
@@ -179,9 +158,7 @@ public class Syscall {
      */
     public static int exec(String name) {
 	Debug.println('S', "User asked to exec " + name);
-	String str = "ProgTest"+ 1 + "(" + name + ")";
-	Debug.println('+', "starting ProgTest: " + str);
-
+	MemManager memManager = MemManager.getInstance();
 	AddrSpace space = new AddrSpace();
 	
 	UserThread t = new UserThread(name, new Runnable(){
@@ -192,42 +169,18 @@ public class Syscall {
 		AddrSpace space_child = ((UserThread)NachosThread.currentThread()).space;
 		
 		if((executable = Nachos.fileSystem.open(name)) == null) {
-		    Debug.println('+', "Unable to open executable file 1: " + name);
-		    lockProcess.acquire();
-		    processes.get(space_child.getSpaceId()).getSemaphore().V();
-		    //remove it from programs running	
-		    processes.remove(space_child.getSpaceId());
-		    lockProcess.release();
-
-//		
-//			lockStatus.acquire();
-//			if(exitStatus.containsKey(space_child.getSpaceId())){
-//			    exitStatus.remove(space_child.getSpaceId());
-//			    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
-//			}
-//			lockStatus.release();
-//			System.out.println("ERROR");
-		    Nachos.scheduler.finishThread();
+		    Debug.println('+', "Unable to open executable file " + name);
+		    addExitStatus(space_child, -1);
+		    removeAndReleaseProcessSem(space_child);
+		    memManager.finishAddrs(space_child);
 		    return;
 		}
 
 		if(space.exec(executable) == -1) {
-		    Debug.println('+', "Unable to read executable file 2: " + name);
-		    lockProcess.acquire();
-		    processes.get(space_child.getSpaceId()).getSemaphore().V();
-		    //remove it from programs running
-		    processes.remove(space_child.getSpaceId());
-		    lockProcess.release();
-		    
-		    
-			lockStatus.acquire();
-			if(exitStatus.containsKey(space_child.getSpaceId())){
-			    exitStatus.remove(space_child.getSpaceId());
-			    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
-			}
-			lockStatus.release();
-//			System.out.println("ERROR");
-		    Nachos.scheduler.finishThread();
+		    Debug.println('+', "Unable to read executable file " + name);
+		    addExitStatus(space_child, -1);
+		    removeAndReleaseProcessSem(space_child);
+		    memManager.finishAddrs(space_child);
 		    return;
 		}
 
@@ -243,26 +196,13 @@ public class Syscall {
 	}, space);
 	//have a lock in case a process needs to join
 	Debug.println('S', "Adding " + space.getSpaceId() + " to possibly join.");
-
-	//Add information about this child process to later take care of it
-	lockProcess.acquire();
-	processes.put(space.getSpaceId(), 
-		new Syscall().new ProcessInformation(((UserThread)NachosThread.currentThread()).space.getSpaceId()));
-	lockProcess.release();
+	addProcessInformation(space);
 	Nachos.scheduler.readyToRun(t);
-	//write back the result to the register
+	//write back the spaceid to the register
 	CPU.writeRegister(2, space.getSpaceId());
-//	System.out.println("Resuturning");
 	return space.getSpaceId();
     }
-    
-    //stackpointer init register
-    //register pc
-    //runnable has to setup register and jump to usermode
-    //address space already initialized
-    //where is it going to start running, also the stack pointer 
-    //other register should be cleared
-    //CPU.runUserCode();
+
 
 
     /**
@@ -279,17 +219,16 @@ public class Syscall {
 	if(processes.containsKey(id)){
 	   sem = processes.get(id).getSemaphore();
 	}else{
+	    Debug.println('S', "Joined " + id + ", leaving join with status -1");
 	    lockProcess.release();
-	    return 0;//return user not found
+	    return -1;//return user not found
 	}
 	lockProcess.release();
 	
 	sem.P();
 
-	lockStatus.acquire();
-	int status = 0;
-	status = exitStatus.remove(((UserThread)NachosThread.currentThread()).space.getSpaceId());
-	lockStatus.release();
+	int status = getStatusOfChildThatExitedFromCurrentThread();
+	
 	Debug.println('S', "Joined " + id + ", leaving join with status " + status);
 	return status;
     }
@@ -404,47 +343,28 @@ public class Syscall {
      */
     public static void fork(int func) {
 
-	//current thread address space
-
-	
-	AddrSpace newAddress = new AddrSpace();
+	AddrSpace child = new AddrSpace();
 	AddrSpace parent= ((UserThread)NachosThread.currentThread()).space;
 	
 	UserThread user = new UserThread("Fork", 
  new Runnable(){
 
 	    public void run(){
-		//clear the mips registers
-		AddrSpace currentAddrSpace= ((UserThread)NachosThread.currentThread()).space;
-		
-		parent.initThreadPageTable(newAddress);
-		
-		
-		
-		int i;
-		for (i = 0; i < MIPS.NumTotalRegs; i++){
-		    CPU.writeRegister(i, 0);		    
-		}		
-
-		int functionAddress  = AddrSpace.convertVirtualToPhysicalIndex(func, parent);
-
-		//pass in user address of procedure for the user program in mem
-		CPU.writeRegister(MIPS.PCReg, functionAddress);	
-		//next user instruction due to possible branch delay
-		CPU.writeRegister(MIPS.NextPCReg, functionAddress+4);
-		int sp = currentAddrSpace.getPageTableLength()* Machine.PageSize;
-		CPU.writeRegister(MIPS.StackReg, sp);
-		Debug.println('a', "Initializing stack register to " + sp + " for forked thread.");
-		
-		newAddress.restoreState();
-
+		MemManager memManager = MemManager.getInstance();
+		//copy page table for child if theres enough memor
+		if(child.copyPageTableForForking(child, parent)==0){
+		//set registers at the given function
+		parent.initRegistersFork(func);
+		child.restoreState();
 		CPU.runUserCode();
+		}else{
+		    Debug.println('S', "removing child");
+		    memManager.finishAddrs(child);
+		}
 	    }
-	}, newAddress);
+	}, child);
 	
-	
-//	spawnedThread = new UserThread("Forked Thread()",run,currentAddrSpace,"Running from "+func);
-	
+	//add it to scheduler to run
 	Nachos.scheduler.readyToRun(user);
 
     }
@@ -457,4 +377,90 @@ public class Syscall {
 	Nachos.scheduler.yieldThread();
     }
 
+    
+    
+    
+    /**Helper methods for Syscall.java that take care of retrieving from hashmaps*/
+    /**
+     * Retrieves the status of the exiting child from current parent
+     * @return the status, else -1 as an error
+     */
+    private static int getStatusOfChildThatExitedFromCurrentThread(){
+	int parent = ((UserThread)NachosThread.currentThread()).space.getSpaceId();
+	int status = -1;
+	lockStatus.acquire();
+	//check if there is a status else return error
+	if(exitStatus.containsKey(parent)){
+		status = exitStatus.remove(parent);
+	}
+	lockStatus.release();
+	return status;
+    }
+    
+    /**
+     * 
+     * @param space 
+     * @return
+     */
+    private static int getParentId(AddrSpace space){
+	    lockProcess.acquire();
+	    int parentId = processes.get(space.getSpaceId()).getParentID();
+	    lockProcess.release();
+	    return parentId;
+    }
+    /**
+     * 
+     * @param space
+     * @return
+     */
+    private static boolean containsProcess(AddrSpace space){
+	lockProcess.acquire();
+	boolean contains = processes.containsKey(space.getSpaceId());
+	lockProcess.release();
+	return contains;
+    }
+    /**
+     * 
+     * @param space
+     */
+    private static void addProcessInformation(AddrSpace space){
+	lockProcess.acquire();
+	processes.put(space.getSpaceId(), 
+		new Syscall().new ProcessInformation(((UserThread)NachosThread.currentThread()).space.getSpaceId()));
+	lockProcess.release();
+    }
+    
+    /**
+     * 
+     * @param space
+     * @param status
+     */
+    private static void addExitStatus(AddrSpace space,int status){
+		lockStatus.acquire();
+		exitStatus.put(processes.get(space.getSpaceId()).getParentID(), status);
+		lockStatus.release();
+    }
+    
+    /**
+     * 
+     * @param space
+     */
+    private static void removeAndReleaseProcessSem(AddrSpace space){
+	    lockProcess.acquire();
+	    processes.remove(space.getSpaceId()).getSemaphore().V();;
+	    lockProcess.release();
+    }
+    
+    /**
+     * 
+     * @param space space to discard status from
+     */
+    private static void discardStatus(AddrSpace space){
+	lockStatus.acquire();
+	if(exitStatus.containsKey(space.getSpaceId())){
+	    exitStatus.remove(space.getSpaceId());
+	    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
+	}
+	lockStatus.release();
+    }
 }

@@ -18,7 +18,7 @@ public class ExecTest implements Runnable{
 //
 //	
 //	new ProgTest("test/yield1",1);
-	new ProgTest("test/yield2",2);
+//	new ProgTest("test/yield2",2);
 	
 	
 	new ProgTest("test/shell",1);
