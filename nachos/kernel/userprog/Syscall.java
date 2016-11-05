@@ -463,4 +463,15 @@ public class Syscall {
 	}
 	lockStatus.release();
     }
+    
+    /**
+     * 
+     * 
+     */
+    public static int predictCPU(UserThread thread) {
+	lockStatus.acquire();
+	int ticks = thread.getTicks();
+	lockStatus.release();
+	return ticks;
+    }
 }

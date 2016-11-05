@@ -47,6 +47,8 @@ public class UserThread extends NachosThread {
 
     /** User-level CPU register state. */
     private int userRegisters[] = new int[MIPS.NumTotalRegs];
+    
+    private int ticks;
 
     public ConsoleDriver console;
     /**
@@ -105,5 +107,8 @@ public class UserThread extends NachosThread {
 	space.restoreState();
     }
     
+    public int getTicks() {
+	return ticks;
+    }
  
 }

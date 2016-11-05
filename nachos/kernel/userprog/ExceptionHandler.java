@@ -116,6 +116,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_PredictCPU:
 		Debug.println('S', "PredictCPU syscall triggered.");
 		Debug.println('S', "Got " + CPU.readRegister(4));
+		
+		Syscall.predictCPU(((UserThread)NachosThread.currentThread()));
 		break;
 	    }
 
