@@ -12,21 +12,21 @@
 
 # Change the following to point to where you have the MIPS cross-compiler
 # installed.
-GCCDIR = /usr/local/gcc-3.2.2_ppc_cross_mips-coff/
+GCCDIR = /home/kATHRYN/mips-gcc/
 
 # Change the following to point to where you have Java executables installed.
-JAVADIR = /usr/bin/
+JAVADIR = 
 
 # Uncomment the following when running on Windows.
-#JAVA= $(JAVADIR)java -classpath '..'
+JAVA= $(JAVADIR)java -classpath '..'
 
 # Uncomment the following when running on Unix.
-JAVA= $(JAVADIR)java -classpath '..'
+#JAVA= $(JAVADIR)java -classpath '..'
 
 CC = $(GCCDIR)gcc
 AS = $(GCCDIR)as
 LD = $(GCCDIR)ld
-CPP = $(GCCDIR)cpp0
+CPP = $(GCCDIR)cpp
 
 COFF2NOFF = $(JAVA) nachos.noff.Coff2Noff
 
@@ -59,16 +59,6 @@ halt: halt.o start.o
 	$(COFF2NOFF) halt.coff halt
 	rm halt.coff
 
-exec1.s: exec1.c
-	$(CC) $(SFLAGS) exec1.c
-exec1.o: exec1.c
-	$(CC) $(CFLAGS) exec1.c
-exec1: exec1.o start.o
-	$(LD) $(LDFLAGS) start.o exec1.o -o exec1.coff
-	rm exec1.o
-	$(COFF2NOFF) exec1.coff exec1
-	rm exec1.coff
-	
 # If you are using gmake, the following rules should enable you to
 # compile any of the test programs.  Otherwise, you have to copy the
 # above code for "halt", making appropriate changes, to compile other

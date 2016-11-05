@@ -65,6 +65,8 @@ public class AddrSpace {
   //identifier for the address space. 
   private int SpaceId; 
   private MemManager memManager = MemManager.getInstance();
+  
+  private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
  
   
   public static int getUserStackSize(){
@@ -342,5 +344,23 @@ public class AddrSpace {
       }   
       
 
+      /**
+       * Set mode of user thread to either kernel or user
+       * @param num (0 for user, 1 for kernel)
+       */
+      public void setMode(int num) {
+	  if (num != 0 || num != 1)
+	      return;
+	  else 
+	      mode = num;
+      }
             
+      /**
+       * Find out what the user thread mode is so it can be
+       * prioritized in kernel mode
+       * @return
+       */
+      public int getMode() {
+	  return mode;
+      }
 }
