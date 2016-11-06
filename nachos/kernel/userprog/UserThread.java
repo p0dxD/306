@@ -36,6 +36,7 @@ import nachos.machine.CPU;
 public class UserThread extends NachosThread {
     /** The context in which this thread will execute. */
     public final AddrSpace space;
+    public boolean inKernelMode = false;
     //each thread has its own pageTable
 //    private TranslationEntry pageTable[];
 

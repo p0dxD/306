@@ -81,9 +81,9 @@ public class Syscall {
     /**Contains temporary processes information */
     static HashMap<Integer, ProcessInformation> processes = new HashMap<>();
     
-    /**Lock for accessing processes and exit status a */
+    /**Lock for accessing exit status */
     static private final SpinLock lockStatus = new SpinLock("Lock on the status");
-    
+    /**Lock for accessing processes status a */
     static private final SpinLock lockProcess = new SpinLock("Lock on the process");
 
     /**
@@ -134,8 +134,7 @@ public class Syscall {
 	
 	if(containsProcess(space)){
 
-	    Debug.println('S', "Calling V on exiting sempahore for join."
-		    +processes.size() +" SIZE OF exit "+exitStatus.size());
+	    Debug.println('S', "Calling V on exiting semaphore for join.");
 
 	    //store the status of this for the parent to collect if he joins,
 	    //else if is discarded for now
@@ -143,7 +142,7 @@ public class Syscall {
 	    if(memManager.containsAddress(parentId)){
 		addExitStatus(space,status);
 	    }
-	    removeAndReleaseProcessSem( space);
+	    removeAndReleaseProcessSem(space);
 	}
 	//if for some reason parent leaves without joining lets discard the status
 	discardStatus(space);

@@ -57,6 +57,11 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
    */
     public void handleException(int which) {
 	int type = CPU.readRegister(2);
+	//for further checks
+	UserThread currentThread = (UserThread)NachosThread.currentThread();
+	currentThread.inKernelMode = true;
+	AddrSpace space = currentThread.space;
+	
 	MemManager memManager = MemManager.getInstance();
 	if (which == MachineException.SyscallException) {
 
@@ -71,7 +76,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		break;
 	    case Syscall.SC_Exec:
 		Debug.println('S', "Exec syscall triggered.");
-		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+		 space = ((UserThread)NachosThread.currentThread()).space;
 		String executable = memManager.getStringFromAddress(CPU.readRegister(4), space);
 		Syscall.exec(executable);
 		break;
@@ -80,10 +85,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int a = CPU.readRegister(4);
 		int b = CPU.readRegister(5);
 		byte c[] = new byte[b];
-		AddrSpace t = ((UserThread)NachosThread.currentThread()).space;
+		 space = ((UserThread)NachosThread.currentThread()).space;
 
 		int s = Syscall.read(c, b, CPU.readRegister(6));
-		memManager.writeByteArrayToPhysicalMem(a, t, c);
+		memManager.writeByteArrayToPhysicalMem(a, space, c);
 
 		CPU.writeRegister(2, s);
 

@@ -8,6 +8,7 @@ import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.SpinLock;
 import nachos.machine.Machine;
+import nachos.machine.NachosThread;
 import nachos.machine.TranslationEntry;
 
 public class MemManager {
@@ -74,7 +75,10 @@ public class MemManager {
      * @param space
      */
     public  void finishAddrs(AddrSpace space){
+	UserThread currentThread = (UserThread)NachosThread.currentThread();
   	removeAddress(space);
+  	//bring back to normal user mode
+  	currentThread.inKernelMode = false;
   	Nachos.scheduler.finishThread();
     }
     
