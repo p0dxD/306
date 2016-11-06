@@ -45,8 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Iterator;
 
-import nachos.machine.Disk;
-import nachos.machine.RK05Disk;
 
 /**
  * Central repository of Nachos options.
@@ -181,6 +179,19 @@ public class Options {
     /** Should we run the network test? */
     public boolean NETWORK_TEST = false;
     
+    /** Mode for CPU Scheduling */
+    public int SPN_SCHEDULING = 2;
+    
+    public int SRT_SCHEDULING = 3;
+    
+    public int HRRN_SCHEDULING = 4;
+    
+    public int RR_SCHEDULING = 1;
+    
+    public int FCFS_SCHEDULING = 0;
+    
+    public int SCHEDULING_MODE = FCFS_SCHEDULING;
+    
     public Options(String[] args) {
 	argList = Arrays.asList(args);
 	parseArgList();
@@ -309,6 +320,38 @@ public class Options {
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				DISK_FILE_NAME = (String)params[0];
+			    }
+			 }),
+		new Spec("-hrrn",  // set scheduling to hrrn
+			new Class[] { },
+			 null,
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				SCHEDULING_MODE = HRRN_SCHEDULING;
+			    }
+			 }),
+		new Spec("-rr",  // set scheduling to round robin
+			new Class[] { },
+			 null,
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				SCHEDULING_MODE = RR_SCHEDULING;
+			    }
+			 }),
+		new Spec("-srt",  // set scheduling to srt
+			new Class[] { },
+			 null,
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				SCHEDULING_MODE = SRT_SCHEDULING;
+			    }
+			 }),
+		new Spec("-spn",  // set scheduling to spn
+			new Class[] { },
+			 null,
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				SCHEDULING_MODE = SPN_SCHEDULING;
 			    }
 			 })
 	});
