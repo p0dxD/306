@@ -14,8 +14,6 @@
 
 package nachos.kernel.threads;
 
-import java.util.LinkedList;
-
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.machine.CPU;
@@ -25,7 +23,6 @@ import nachos.machine.Timer;
 import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
 import nachos.util.Queue;
-import nachos.kernel.userprog.UserThread;
 
 /**
  * The scheduler is responsible for maintaining a list of threads that
@@ -75,7 +72,6 @@ public class Scheduler {
      * @param firstThread  The first NachosThread to run.
      */
     public Scheduler(NachosThread firstThread) {
-	
 	readyList = new FIFOQueue<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
 
@@ -148,22 +144,13 @@ public class Scheduler {
      *
      * @param thread The thread to be put on the ready list.
      */
-    @SuppressWarnings("unchecked")
     private void makeReady(NachosThread thread) {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
 
 	Debug.println('t', "Putting thread on ready list: " + thread.name);
 
 	thread.setStatus(NachosThread.READY);
-	
-	// Is it Kernel mode? Send to front of list
-	if (!thread.getClass().toString().equals("UserThread"))
-	    ((LinkedList<NachosThread>) readyList).offerFirst(thread);
-	else if (((UserThread)thread).getMode() == 1)
-	    ((LinkedList<NachosThread>) readyList).offerFirst(thread);
-	// It is in user mode, add appropriately
-	else
-	    readyList.offer(thread);
+	readyList.offer(thread);
     }
 
     /**
