@@ -72,6 +72,7 @@ public class Scheduler {
      * @param firstThread  The first NachosThread to run.
      */
     public Scheduler(NachosThread firstThread) {
+	
 	readyList = new FIFOQueue<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
 

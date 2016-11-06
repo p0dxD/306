@@ -1,11 +1,7 @@
 package nachos.util;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import nachos.Debug;
 import nachos.kernel.threads.Callout;
-import nachos.kernel.threads.Condition;
-import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
 
@@ -42,7 +38,6 @@ public class SynchronousQueue<T> implements Queue<T> {
 //    private Queue<T> takeOffers;
     private Callout callout;
     //Timeout return variables. 
-    private boolean status;
 //    private T obj;
     private int consumers =0, producers = 0;
     

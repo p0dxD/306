@@ -20,19 +20,14 @@
 package nachos.kernel.userprog;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
-import nachos.machine.NachosThread;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
-import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
-import nachos.kernel.threads.SpinLock;
-
 /**
  * This class manages "address spaces", which are the contexts in which
  * user programs execute.  For now, an address space contains a

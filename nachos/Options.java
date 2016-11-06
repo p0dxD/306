@@ -45,8 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Iterator;
 
-import nachos.machine.Disk;
-import nachos.machine.RK05Disk;
 
 /**
  * Central repository of Nachos options.

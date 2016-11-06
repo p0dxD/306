@@ -11,16 +11,8 @@
 package nachos.kernel.userprog;
 
 import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
-import nachos.machine.TranslationEntry;
-import nachos.noff.NoffHeader;
-
-import java.util.ArrayList;
-
-import nachos.Debug;
 import nachos.kernel.devices.ConsoleDriver;
-import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
 
 /**
