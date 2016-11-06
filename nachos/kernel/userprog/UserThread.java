@@ -11,16 +11,8 @@
 package nachos.kernel.userprog;
 
 import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
-import nachos.machine.TranslationEntry;
-import nachos.noff.NoffHeader;
-
-import java.util.ArrayList;
-
-import nachos.Debug;
 import nachos.kernel.devices.ConsoleDriver;
-import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
 
 /**
@@ -47,7 +39,11 @@ public class UserThread extends NachosThread {
 
     /** User-level CPU register state. */
     private int userRegisters[] = new int[MIPS.NumTotalRegs];
-
+    
+    private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
+    private int predictedBurst = 1; // a user defined burst length, 1 for default
+    public int timeInserted = 0; // the machine time of inserting into queue
+   
     public ConsoleDriver console;
     /**
      * Initialize a new user thread.
@@ -105,5 +101,40 @@ public class UserThread extends NachosThread {
 	space.restoreState();
     }
     
+    /**
+     * get tick bursts
+     * @return
+     */
+    public int getBurst() {
+	return predictedBurst;
+    }
+    
+    /**
+     * Predicted burst based on a syscall from the userthread
+     * @param ticks
+     */
+    public void setBurst(int ticks) {
+	this.predictedBurst = ticks;
+    }
+    
+    /**
+     * Set mode of user thread to either kernel or user
+     * @param num (0 for user, 1 for kernel)
+     */
+    public void setMode(int num) {
+	  if (num != 0 || num != 1)
+	      return;
+	  else 
+	      mode = num;
+    }
+          
+    /**
+     * Find out what the user thread mode is so it can be
+     * prioritized in kernel mode
+     * @return
+     */
+    public int getMode() {
+	  return mode;
+    }
  
 }
