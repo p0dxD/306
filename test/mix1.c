@@ -11,7 +11,7 @@ main()
   Exec("halt");
   while(1) {
     if(i%100 == 0)
-      Write("1: here\n", 8, 1);
+      Write("1: here\r\n", 9, 1);
     A[i%(PAGESIZE/4)] = i*2;
 	i++;
   }

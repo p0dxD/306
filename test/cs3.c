@@ -30,9 +30,9 @@ main()
     sum += A[i];
 
   if(sum==((ARRAYSIZE/2)*(ARRAYSIZE-1))) {
-    Write("OK\n", 3, 1);
+    Write("OK\r\n", 4, 1);
   } else {
-    Write("Broken\n", 7, 1);
+    Write("Broken\r\n", 8, 1);
   }
   Exit(0);
 }

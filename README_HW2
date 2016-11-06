@@ -1,0 +1,52 @@
+
+
+Nachos HW2
+
+Testing:
+Execute Test via ExecTest.java when nachos starts up. It creates ProgTest threads that run the respective C programs. 
+
+
+Overview:
+
+I.AddrSpace.java
+We implemented mapping for the program from virtual pages to physical pages. 
+To do so, we created a static boolean vector to keep track of the physical pages that were free in the system.
+ Therefore, when there is a request for physical page memory, we check the boolean vector to see if the space is already occupied. 
+ If it is not, we take the index of the free physical page, and map it to the virtual page of the process. 
+
+
+II.Syscall.java
+a)Exec():
+For Exec, we used call the exec() function in the address space, which initializes the page Tables for the address space. 
+Instead of the original one-to-one mapping in single programming, we keep track of used/free physical pages in Main Memory.
+Then we return the free physical pages, and maps it to the virtual pages for multiprogramming.  
+
+b) Fork(): 
+For forking, we created a new UserThread every time fork() is called. 
+The newly spawned thread is constructed by sharing the address space with the currently running NachosThread. 
+It takes the user address of the function to execute, and loads it into the MIPS PC register. 
+It also calculates the address of the stack pointer for the newly spawned thread. 
+
+c) Yield():
+Links the system call to the scheduler's yield() function. 
+
+d) Join():
+AddrSpaces are stored in hashMap, which the exit status of the child process as values. 
+When the child process returns, will V() on the semaphore and modify the exit status 
+for the ProcessInformation object. This will wake up the parent thread if it is blocking. 
+Then, the parent thread will check the hashMap and grab the ProcessInformation to check the exit status of the child. 
+
+
+III.UserThread.java
+Has variable for the console that the thread uses. 
+
+IV.ConsoleManager
+contains a boolean array to keep track of used consoles. Instantiates consoles and returns them for fulfilling requests. 
+ConsoleManager is fully implemented, the only part missing is adding it to user.  
+
+
+To see output have the debug flag S set, also the class ExecTest contains varios runs of programs specifically made to test the different
+components that were individually done, mixing up all the syscalls. 
+The fork behaves strangely, but according to the professor is expected.
+
+

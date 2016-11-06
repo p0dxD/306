@@ -3,6 +3,6 @@
 
 int main()
 {
-  Write("Multiprog-timeshare-join 2\n",27,ConsoleOutput);
+  Write("Multiprog-timeshare-join 2\r\n",28,ConsoleOutput);
   Exit('a');
 }

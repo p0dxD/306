@@ -46,5 +46,5 @@ int main(void)
   fib20 = fib(20);
   len = int2str(fib20,ans);
   Write(ans,len,ConsoleOutput);
-  Write("\n",1,ConsoleOutput);
+  Write("\r\n",2,ConsoleOutput);
 }

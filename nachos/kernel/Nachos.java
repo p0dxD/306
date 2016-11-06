@@ -39,6 +39,7 @@ import nachos.kernel.threads.test.CalloutTest;
 import nachos.kernel.threads.test.SMPTest;
 import nachos.kernel.threads.test.SynchronousQueueTest;
 import nachos.kernel.threads.test.ThreadTest;
+import nachos.kernel.userprog.test.ExecTest;
 import nachos.kernel.userprog.test.ProgTest;
 import nachos.kernel.filesys.test.FileSystemTest;
 
@@ -123,10 +124,13 @@ public class Nachos implements Runnable {
 	    NetworkTest.start();
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
+//	
+	Debug.println('S', "Running HW 2 TEST");
+	ExecTest.start();
 	
 	//test cases hw 1
-	CalloutTest.start();
-	SynchronousQueueTest.start();
+//	CalloutTest.start();
+//	SynchronousQueueTest.start();
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility

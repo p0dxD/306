@@ -14,13 +14,15 @@ main()
 
     while(1) {
 	Write(prompt, 2, output);
-
+	//Write("shell: ", 6, output);
 	i = 0;
 	
 	do {
 	  Read(&buffer[i], 1, input); 
-	} while( buffer[i++] != '\n' );
+	  Write(&buffer[i], 1, output);
 
+	} while( buffer[i++] != '\n' );
+	Write("\r", 1, output);
 	buffer[--i] = '\0';
 
 	if( i > 0 ) {
@@ -32,7 +34,10 @@ main()
 		break;
 	    newProc = Exec(buffer);
 	    Join(newProc);
+	    //Write("After", 5, 1);
+	    
 	}
     }
+    Halt();
 }
 

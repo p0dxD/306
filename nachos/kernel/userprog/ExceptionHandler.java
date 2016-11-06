@@ -4,11 +4,17 @@
 
 package nachos.kernel.userprog;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
+import nachos.machine.NachosThread;
+import nachos.kernel.Nachos;
+import nachos.kernel.threads.Scheduler;
 import nachos.kernel.userprog.Syscall;
 
 /**
@@ -51,26 +57,70 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
    */
     public void handleException(int which) {
 	int type = CPU.readRegister(2);
-
+	//for further checks
+	UserThread currentThread = (UserThread)NachosThread.currentThread();
+	currentThread.inKernelMode = true;
+	AddrSpace space = currentThread.space;
+	
+	MemManager memManager = MemManager.getInstance();
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
 	    case Syscall.SC_Halt:
+		Debug.println('S', "Halt syscall triggered.");
 		Syscall.halt();
 		break;
 	    case Syscall.SC_Exit:
+		Debug.println('S', "Exit syscall triggered.");
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
-		Syscall.exec("");
+		Debug.println('S', "Exec syscall triggered.");
+		 space = ((UserThread)NachosThread.currentThread()).space;
+		String executable = memManager.getStringFromAddress(CPU.readRegister(4), space);
+		Syscall.exec(executable);
 		break;
+	    case Syscall.SC_Read:
+		Debug.println('S', "Read syscall triggered.");
+		int a = CPU.readRegister(4);
+		int b = CPU.readRegister(5);
+		byte c[] = new byte[b];
+		 space = ((UserThread)NachosThread.currentThread()).space;
+
+		int s = Syscall.read(c, b, CPU.readRegister(6));
+		memManager.writeByteArrayToPhysicalMem(a, space, c);
+
+		CPU.writeRegister(2, s);
+
+		break;
+		
 	    case Syscall.SC_Write:
+		Debug.println('S', "Write syscall triggered.");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-
-		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
+		memManager.getCharsFromMemory(ptr, ((UserThread)NachosThread.currentThread()).space, len, buf);
 		Syscall.write(buf, len, CPU.readRegister(6));
+		break;
+		
+	    case Syscall.SC_Yield:
+		Debug.println('S', "Yield syscall triggered.");
+		Syscall.yield();
+		break;
+		
+	    case Syscall.SC_Join:
+		Debug.println('S', "Join syscall triggered.");
+		int status = Syscall.join(CPU.readRegister(4));
+		CPU.writeRegister(2, status);
+		break;
+		
+	    case Syscall.SC_Fork:
+		Debug.println('S', "Fork syscall triggered.");
+		Syscall.fork(CPU.readRegister(4));
+		break;
+	    case Syscall.SC_PredictCPU:
+		Debug.println('S', "PredictCPU syscall triggered.");
+		Debug.println('S', "Got " + CPU.readRegister(4));
 		break;
 	    }
 
@@ -83,10 +133,26 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    CPU.writeRegister(MIPS.NextPCReg,
 		    CPU.readRegister(MIPS.NextPCReg)+4);
 	    return;
+	}else if(which == MachineException.PageFaultException){
+	    System.out.println("PageFaultException");
+	}else if(which == MachineException.IllegalInstrException){
+	    System.out.println("IllegalInstrException hashdashdlsajdajksdhaksj");
+	}else if(which == MachineException.NumExceptionTypes){
+	    System.out.println("NumExceptionTypes");
+	}else if(which == MachineException.OverflowException){
+	    System.out.println("OverflowException");
+	}else if(which == MachineException.NoException){
+	    System.out.println("NoException");
+	}else if(which == MachineException.SyscallException){
+	    System.out.println("SyscallException");
+	}else if(which == MachineException.AddressErrorException){
+	    System.out.println("AddressErrorException");
 	}
+	String[] str = MachineException.exceptionNames;
+	
 
-	System.out.println("Unexpected user mode exception " + which +
-		", " + type);
+	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
+	memManager.finishAddrs(((UserThread)NachosThread.currentThread()).space);
 	Debug.ASSERT(false);
 
     }
