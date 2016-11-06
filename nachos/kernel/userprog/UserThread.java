@@ -41,8 +41,8 @@ public class UserThread extends NachosThread {
     private int userRegisters[] = new int[MIPS.NumTotalRegs];
     
     private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
-    
-    private int predictedBurst; // a user defined burst length
+    private int predictedBurst = 1; // a user defined burst length, 1 for default
+    public int timeInserted = 0; // the machine time of inserting into queue
    
     public ConsoleDriver console;
     /**
@@ -107,6 +107,14 @@ public class UserThread extends NachosThread {
      */
     public int getBurst() {
 	return predictedBurst;
+    }
+    
+    /**
+     * Predicted burst based on a syscall from the userthread
+     * @param ticks
+     */
+    public void setBurst(int ticks) {
+	this.predictedBurst = ticks;
     }
     
     /**

@@ -22,8 +22,11 @@ import nachos.machine.NachosThread;
 import nachos.machine.Timer;
 import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
+import nachos.util.HRRNComparator;
 import nachos.util.PriorityQueue;
 import nachos.util.Queue;
+import nachos.util.SPNComparator;
+import nachos.util.SRTComparator;
 
 /**
  * The scheduler is responsible for maintaining a list of threads that
@@ -80,10 +83,21 @@ public class Scheduler {
      */
     public Scheduler(NachosThread firstThread) {
 	// If RR or FCFS, make a FIFO Queue, otherwise, make a priority queue
-	if (Nachos.options.SCHEDULING_MODE < 2)
-	    readyList = new FIFOQueue<NachosThread>();
-	else	
-	    readyList = new PriorityQueue<NachosThread>();
+	switch(Nachos.options.SCHEDULING_MODE) {
+		case 0: 	;
+		case 1:		readyList = new FIFOQueue<NachosThread>();
+				break;
+		case 2: 	SPNComparator spn = new SPNComparator();
+		    		readyList = new PriorityQueue<NachosThread>(1, spn);
+		    		break;
+		case 3: 	SRTComparator srt = new SRTComparator();
+    				readyList = new PriorityQueue<NachosThread>(1, srt);
+    				break;
+		case 4:		HRRNComparator hrrn = new HRRNComparator();
+				readyList = new PriorityQueue<NachosThread>(1, hrrn);
+				break;
+		default:	readyList = new FIFOQueue<NachosThread>();
+	}
 	
 	cpuList = new FIFOQueue<CPU>();
 
@@ -390,6 +404,10 @@ public class Scheduler {
 	Debug.println('C',"Thread is sleeping ready to be awaken");
 	sem.P();
 	Debug.println('C',"Thread awaken");
+    }
+    
+    public int getCurrentTime() {
+	return currentTime;
     }
     //TODO: should a blocked state yield the CPU?
     /**

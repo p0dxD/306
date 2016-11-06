@@ -462,10 +462,9 @@ public class Syscall {
      * 
      * 
      */
-    public static int predictCPU(UserThread thread) {
+    public static void predictCPU(UserThread thread, int burst) {
 	lockStatus.acquire();
-	int ticks = thread.getTicks();
+	thread.setBurst(burst);
 	lockStatus.release();
-	return ticks;
     }
 }
