@@ -66,10 +66,12 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Exec:
 		Debug.println('S', "Exec syscall triggered.");
 		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		space.setMode(1); //switch to kernel mode
+		//switch to kernel mode
+		((UserThread)NachosThread.currentThread()).setMode(1); 
 		String executable = memManager.getStringFromAddress(CPU.readRegister(4), space);
 		Syscall.exec(executable);
-		space.setMode(0); //switch back to user mode
+		//switch back to user mode
+		((UserThread)NachosThread.currentThread()).setMode(0); 
 		break;
 	    case Syscall.SC_Read:
 		Debug.println('S', "Read syscall triggered.");

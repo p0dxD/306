@@ -40,6 +40,8 @@ public class UserThread extends NachosThread {
     /** User-level CPU register state. */
     private int userRegisters[] = new int[MIPS.NumTotalRegs];
     
+    private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
+    
     private int ticks;
 
     public ConsoleDriver console;
@@ -99,8 +101,32 @@ public class UserThread extends NachosThread {
 	space.restoreState();
     }
     
+    /**
+     * get tick bursts
+     * @return
+     */
     public int getTicks() {
 	return ticks;
+    }
+    
+    /**
+     * Set mode of user thread to either kernel or user
+     * @param num (0 for user, 1 for kernel)
+     */
+    public void setMode(int num) {
+	  if (num != 0 || num != 1)
+	      return;
+	  else 
+	      mode = num;
+    }
+          
+    /**
+     * Find out what the user thread mode is so it can be
+     * prioritized in kernel mode
+     * @return
+     */
+    public int getMode() {
+	  return mode;
     }
  
 }
