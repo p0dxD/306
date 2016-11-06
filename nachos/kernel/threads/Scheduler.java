@@ -22,6 +22,7 @@ import nachos.machine.NachosThread;
 import nachos.machine.Timer;
 import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
+import nachos.util.PriorityQueue;
 import nachos.util.Queue;
 
 /**
@@ -63,6 +64,12 @@ public class Scheduler {
 
     /** Spin lock for mutually exclusive access to scheduler state. */
     private final SpinLock mutex = new SpinLock("scheduler mutex");
+    
+    /** Quantum for preemptive scheduling */
+    private final static int QUANTUM = 1000;    
+    
+    /** time to use when checking quantum */
+    private static int currentTime = 0;
 
     /**
      * Initialize the scheduler.
@@ -72,7 +79,12 @@ public class Scheduler {
      * @param firstThread  The first NachosThread to run.
      */
     public Scheduler(NachosThread firstThread) {
-	readyList = new FIFOQueue<NachosThread>();
+	// If RR or FCFS, make a FIFO Queue, otherwise, make a priority queue
+	if (Nachos.options.SCHEDULING_MODE < 2)
+	    readyList = new FIFOQueue<NachosThread>();
+	else	
+	    readyList = new PriorityQueue<NachosThread>();
+	
 	cpuList = new FIFOQueue<CPU>();
 
 	Debug.println('t', "Initializing scheduler");
@@ -401,6 +413,7 @@ public class Scheduler {
 	}
 
 	public void handleInterrupt() {
+	    currentTime += 100;
 	    Debug.println('i', "Timer interrupt: " + timer.name);
 	    // Note that instead of calling yield() directly (which would
 	    // suspend the interrupt handler, not the interrupted thread
@@ -408,7 +421,9 @@ public class Scheduler {
 	    // so that once the interrupt handler is done, it will appear as 
 	    // if the interrupted thread called yield at the point it is 
 	    // was interrupted.
-	    yieldOnReturn();
+	    if ((Nachos.options.SCHEDULING_MODE == 1 || Nachos.options.SCHEDULING_MODE == 3) &&
+		    currentTime % QUANTUM == 0)
+		yieldOnReturn();
 	}
 
 	/**

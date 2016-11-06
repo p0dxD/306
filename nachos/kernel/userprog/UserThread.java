@@ -42,8 +42,8 @@ public class UserThread extends NachosThread {
     
     private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
     
-    private int ticks;
-
+    private int predictedBurst; // a user defined burst length
+   
     public ConsoleDriver console;
     /**
      * Initialize a new user thread.
@@ -105,8 +105,8 @@ public class UserThread extends NachosThread {
      * get tick bursts
      * @return
      */
-    public int getTicks() {
-	return ticks;
+    public int getBurst() {
+	return predictedBurst;
     }
     
     /**
