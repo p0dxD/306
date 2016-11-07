@@ -4,17 +4,11 @@
 
 package nachos.kernel.userprog;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.MachineException;
 import nachos.machine.NachosThread;
-import nachos.kernel.Nachos;
-import nachos.kernel.threads.Scheduler;
 import nachos.kernel.userprog.Syscall;
 
 /**
@@ -76,16 +70,19 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		break;
 	    case Syscall.SC_Exec:
 		Debug.println('S', "Exec syscall triggered.");
-		 space = ((UserThread)NachosThread.currentThread()).space;
+		//switch to kernel mode
+		currentThread.setMode(1); 
+
 		String executable = memManager.getStringFromAddress(CPU.readRegister(4), space);
 		Syscall.exec(executable);
+		//switch back to user mode
+		((UserThread)NachosThread.currentThread()).setMode(0); 
 		break;
 	    case Syscall.SC_Read:
 		Debug.println('S', "Read syscall triggered.");
 		int a = CPU.readRegister(4);
 		int b = CPU.readRegister(5);
 		byte c[] = new byte[b];
-		 space = ((UserThread)NachosThread.currentThread()).space;
 
 		int s = Syscall.read(c, b, CPU.readRegister(6));
 		memManager.writeByteArrayToPhysicalMem(a, space, c);
@@ -121,6 +118,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_PredictCPU:
 		Debug.println('S', "PredictCPU syscall triggered.");
 		Debug.println('S', "Got " + CPU.readRegister(4));
+		
+		Syscall.predictCPU(((UserThread)NachosThread.currentThread()), CPU.readRegister(4));
 		break;
 	    }
 
@@ -147,12 +146,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    System.out.println("SyscallException");
 	}else if(which == MachineException.AddressErrorException){
 	    System.out.println("AddressErrorException");
-	}
-	String[] str = MachineException.exceptionNames;
-	
+	}	
 
 	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
-	memManager.finishAddrs(((UserThread)NachosThread.currentThread()).space);
+	memManager.finishAddrs(space);
 	Debug.ASSERT(false);
 
     }

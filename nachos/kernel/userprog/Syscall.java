@@ -11,17 +11,11 @@ import java.util.HashMap;
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
-import nachos.kernel.threads.Condition;
-import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
 import nachos.machine.CPU;
-import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
-import nachos.machine.TranslationEntry;
-
 /**
  * Nachos system call interface.  These are Nachos kernel operations
  * that can be invoked from user programs, by trapping to the kernel
@@ -460,6 +454,16 @@ public class Syscall {
 	    exitStatus.remove(space.getSpaceId());
 	    Debug.println('S', "Parent terminated without calling Join" + exitStatus.size());
 	}
+	lockStatus.release();
+    }
+    
+    /**
+     * 
+     * 
+     */
+    public static void predictCPU(UserThread thread, int burst) {
+	lockStatus.acquire();
+	thread.setBurst(burst);
 	lockStatus.release();
     }
 }
