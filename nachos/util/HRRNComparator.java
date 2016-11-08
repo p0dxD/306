@@ -9,6 +9,13 @@ public class HRRNComparator implements Comparator<NachosThread>{
 
     @Override
     public int compare(NachosThread o1, NachosThread o2) {
+	
+	// If this is a NachosThread that is not a UserThread, it's priority is higher than
+	// UserThreads (it is in kernel mode).
+	if (!o1.getClass().equals("UserThread"))
+	    return 1;
+		
+	// Otherwise, check it against other UserThreads.
 	int timeWaitedO1 = Nachos.scheduler.getCurrentTime() - ((UserThread)o1).timeInserted;
 	int timeWaitedO2 = Nachos.scheduler.getCurrentTime() - ((UserThread)o2).timeInserted;
 	
