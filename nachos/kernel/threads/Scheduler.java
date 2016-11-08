@@ -27,6 +27,7 @@ import nachos.util.PriorityQueue;
 import nachos.util.Queue;
 import nachos.util.SPNComparator;
 import nachos.util.SRTComparator;
+import nachos.kernel.userprog.UserThread;
 
 /**
  * The scheduler is responsible for maintaining a list of threads that
@@ -173,9 +174,13 @@ public class Scheduler {
     private void makeReady(NachosThread thread) {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
 
+	
 	Debug.println('t', "Putting thread on ready list: " + thread.name);
 
 	thread.setStatus(NachosThread.READY);
+	// set threads current input time for calculating time waiting.
+	if (thread.getClass().equals("UserThread"))
+	    ((UserThread)thread).timeInserted = currentTime;
 	readyList.offer(thread);
     }
 
@@ -249,6 +254,7 @@ public class Scheduler {
 	Debug.println('t', "Next thread to run: "
 		+ (nextThread == null ? "(none)" : nextThread.name));
 
+	
 	// The current thread will be suspending -- save its context.
 	currentThread.saveState();
 
@@ -440,8 +446,14 @@ public class Scheduler {
 	    // if the interrupted thread called yield at the point it is 
 	    // was interrupted.
 	    if ((Nachos.options.SCHEDULING_MODE == 1 || Nachos.options.SCHEDULING_MODE == 3) &&
-		    currentTime % QUANTUM == 0)
+		    currentTime % QUANTUM == 0) {
+		
+		// The current thread has run for a single quantum, and remaining time
+		// should be decremented by 1000 ticks by incrementing time run so far.
+		if (NachosThread.currentThread().getClass().equals("UserThread"))
+		    ((UserThread)NachosThread.currentThread()).timeExecuted+=1000;
 		yieldOnReturn();
+	    }
 	}
 
 	/**
