@@ -323,7 +323,7 @@ public class Options {
 			    }
 			 }),
 		new Spec("-hrrn",  // set scheduling to hrrn
-			new Class[] { },
+			new Class[] {Integer.class},
 			 null,
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
@@ -331,7 +331,7 @@ public class Options {
 			    }
 			 }),
 		new Spec("-rr",  // set scheduling to round robin
-			new Class[] { },
+			new Class[] {Integer.class},
 			 null,
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
@@ -339,7 +339,7 @@ public class Options {
 			    }
 			 }),
 		new Spec("-srt",  // set scheduling to srt
-			new Class[] { },
+			new Class[] {Integer.class},
 			 null,
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
@@ -347,7 +347,7 @@ public class Options {
 			    }
 			 }),
 		new Spec("-spn",  // set scheduling to spn
-			new Class[] { },
+			new Class[] {Integer.class},
 			 null,
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
