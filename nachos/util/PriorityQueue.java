@@ -14,21 +14,21 @@ public class PriorityQueue<T> extends java.util.PriorityQueue<T> implements Queu
     }
 
     
-    public static void resort(Queue<NachosThread> pq, Comparator<NachosThread> cmp){
-	Comparator<NachosThread> spn = new SPNComparator();
-    	Queue<NachosThread> readyListUser = new PriorityQueue<NachosThread>(1,spn);
+    public static void incrementTime(PriorityQueue<NachosThread> pq){
 	
-	
-	@SuppressWarnings("unchecked")
-	Iterator<NachosThread> it = ((java.util.PriorityQueue<NachosThread>) pq).iterator();
-	while(it.hasNext()){
-	    readyListUser.offer(it.next());
-	}
-	pq = readyListUser;
-	System.out.println("readyListUser elements");
-	 ((PriorityQueue<NachosThread>) readyListUser).displayElements();
-	
+	   Iterator<NachosThread> it = pq.iterator();
+	      
+	   System.out.println ( "Priority queue values are: ");
+	      
+	   while (it.hasNext()){
+	       UserThread ut = ((UserThread)it.next());
+	       System.out.print( "CurrentTime: "+ ut.getStartTime()); 
+	       ut.setStartTime(ut.getStartTime()+100);       
+	       System.out.print( "new Time: "+ ut.getStartTime()); 
+	   }
+	   System.out.println();
     }
+    
     
     public void displayElements(){
 	

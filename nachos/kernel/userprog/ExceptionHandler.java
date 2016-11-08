@@ -55,7 +55,6 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	UserThread currentThread = (UserThread)NachosThread.currentThread();
 	AddrSpace space = currentThread.space;
 	currentThread.setMode(1);
-	System.out.println("MODE CHANGED TO 1");
 	MemManager memManager = MemManager.getInstance();
 	if (which == MachineException.SyscallException) {
 

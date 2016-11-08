@@ -12,6 +12,7 @@ package nachos.kernel.userprog;
 
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
+import nachos.kernel.Nachos;
 import nachos.kernel.devices.ConsoleDriver;
 import nachos.machine.CPU;
 
@@ -42,7 +43,7 @@ public class UserThread extends NachosThread{
      
     private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
     private int predictedBurst = 1; // a user defined burst length, 1 for default
-    public int timeInserted = 0; // the machine time of inserting into queue
+    private int timeInserted = 0; // the machine time of inserting into queue
     private int argInt = 0;
     
     public ConsoleDriver console;
@@ -58,6 +59,7 @@ public class UserThread extends NachosThread{
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
 	space = addrSpace;
+	timeInserted = Nachos.scheduler.getCurrentTime();
 	//find the set stack size throughout the system, then allocate mem for thread's own stack. 
     }
     
@@ -137,5 +139,11 @@ public class UserThread extends NachosThread{
 	  return mode;
     }
 
- 
+    public int getStartTime(){
+	return timeInserted;
+    }
+    
+    public void setStartTime(int newTime){
+	this.timeInserted = newTime;
+    }
 }

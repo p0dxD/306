@@ -79,7 +79,7 @@ public class MemManager {
   	removeAddress(space);
   	//bring back to normal user mode
   	currentThread.setMode(0);
-  	System.out.println("MODE CHANGED TO 0" + " FINISHED " +currentThread.getBurst());
+//  	System.out.println("MODE CHANGED TO 0" + " FINISHED " +currentThread.getBurst());
   	
   	Nachos.scheduler.finishThread();
     }

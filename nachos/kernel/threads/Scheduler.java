@@ -128,7 +128,9 @@ public class Scheduler {
 	    cpus[i] = cpu;
 	    quantums[i] = 0;
 	    cpuList.offer(cpu);
-	    if(Nachos.options.CPU_TIMERS||Nachos.options.SCHEDULING_MODE == 1) {
+	    //will start timers for RR, HRRN
+	    if(Nachos.options.CPU_TIMERS||Nachos.options.SCHEDULING_MODE == Nachos.options.RR_SCHEDULING 
+		    ||Nachos.options.SCHEDULING_MODE == Nachos.options.HRRN_SCHEDULING) {
 		Timer timer = cpu.timer;
 		timer.setHandler(new TimerInterruptHandler(timer));
 		if(Nachos.options.RANDOM_YIELD)
@@ -205,8 +207,12 @@ public class Scheduler {
 	}
 	else{
 	    readyListUser.offer(thread);
-	    
-	    
+	    //if its STR we yield to position it in the right position,
+	    //if the previous one is still the smallest it keeps running
+	    //else it changes to the smalles one that we have to run 
+	    if(Nachos.options.SCHEDULING_MODE == Nachos.options.SRT_SCHEDULING){
+		this.yieldThread();
+	    }
 	    Debug.println('A', ("Added to User Queue."));
 //	    ((PriorityQueue<NachosThread>) readyListUser).displayElements();
 	}
@@ -503,6 +509,13 @@ public class Scheduler {
 	quantums[i] = 0;
     }
     
+    /**
+     * Update the time for HRRN
+     */
+    private void incrementTimeForHRRN(){
+	if(!readyListUser.isEmpty())
+	    PriorityQueue.incrementTime((PriorityQueue<NachosThread>) readyListUser);
+    }
     //TODO: should a blocked state yield the CPU?
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
@@ -536,18 +549,29 @@ public class Scheduler {
 		//reset it
 		quantums[i] = 0;
 		yieldOnReturn();
-	    }	    
+	    }	
+	    
+	    //if we got HRRN then we increment time every 100 ticks
+	    if(Nachos.options.SCHEDULING_MODE == Nachos.options.HRRN_SCHEDULING){
+		currentTime+=100;
+		Nachos.scheduler.incrementTimeForHRRN();
+		return;
+	    }
+	    
 	    // Note that instead of calling yield() directly (which would
 	    // suspend the interrupt handler, not the interrupted thread
 	    // which is what we wanted to context switch), we set a flag
 	    // so that once the interrupt handler is done, it will appear as 
 	    // if the interrupted thread called yield at the point it is 
 	    // was interrupted.
-
+	    
+	
+	    
 	    yieldOnReturn();
 
 	}
 
+	
 	/**
 	 * Called to cause a context switch (for example, on a time slice)
 	 * in the interrupted thread when the handler returns.

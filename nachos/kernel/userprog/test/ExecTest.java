@@ -22,8 +22,8 @@ public class ExecTest implements Runnable{
 	Random randomNum = new Random();
 	int coinFlip = 1;
 	int  n = (int)(Math.random()*100 + 1);
-	int i = 100;
-	while(coinFlip !=0){
+	int i = 100, j = 0;
+	while(j++ < 5){
 	    Debug.println('A', ("Executing program with burst " + n*10));
 	    Debug.println('A', ("Got value " + coinFlip + " for probability."));
 	    new ProgTest("test/predict1",1, n*10);
@@ -31,7 +31,7 @@ public class ExecTest implements Runnable{
 	    coinFlip = randomNum.nextInt(2);
 	    i+=100;
 	    Debug.println('A', ("Sleeping for quantum 1000"));
-	    Nachos.scheduler.sleepThread(sleepingThreadQuantum);
+//	    Nachos.scheduler.sleepThread(sleepingThreadQuantum);
 	}
 
 	Debug.println('A', "Ending ExecTest, ran " + ((i/100)-1) + " programs.");
