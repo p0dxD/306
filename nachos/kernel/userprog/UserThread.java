@@ -43,6 +43,7 @@ public class UserThread extends NachosThread {
     private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
     private int predictedBurst = 1; // a user defined burst length, 1 for default
     public int timeInserted = 0; // the machine time of inserting into queue
+    public int timeExecuted = 0; // amount of time the process has used base on quantum
    
     public ConsoleDriver console;
     /**
