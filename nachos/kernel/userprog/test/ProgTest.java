@@ -31,6 +31,7 @@ public class ProgTest implements Runnable {
 
     /** The name of the program to execute. */
     private String execName;
+    private int sizeOfBurst = 0;
 
     /**
      * Start the test by creating a new address space and user thread,
@@ -49,7 +50,26 @@ public class ProgTest implements Runnable {
 	UserThread t = new UserThread(name, this, space);
 	Nachos.scheduler.readyToRun(t);
     }
+    
+    /**
+     * Start the test by creating a new address space and user thread,
+     * then arranging for the new thread to begin executing the run() method
+     * of this class.
+     *
+     * @param filename The name of the program to execute.
+     */
+    public ProgTest(String filename, int num, int sizeOfBurst) {
+	Debug.println('S', "HERE");
+	String name = "ProgTest"+ num + "(" + filename + ")";
+	this.sizeOfBurst = sizeOfBurst;
+	Debug.println('+', "starting ProgTest: " + name);
 
+	execName = filename;
+	AddrSpace space = new AddrSpace();
+	UserThread t = new UserThread(name, this, space);
+	Nachos.scheduler.readyToRun(t);
+    }
+    
     /**
      * Entry point for the thread created to run the user program.
      * The specified executable file is used to initialize the address
@@ -74,13 +94,15 @@ public class ProgTest implements Runnable {
 
 	space.initRegisters();		// set the initial register values
 	space.restoreState();		// load page table register
-
+	
+	CPU.writeRegister(4, this.sizeOfBurst);
 	CPU.runUserCode();			// jump to the user progam
 	Debug.ASSERT(false);		// machine->Run never returns;
 	// the address space exits
 	// by doing the syscall "exit"
     }
-
+    
+    
     /**
      * Entry point for the test.  Command line arguments are checked for
      * the name of the program to execute, then the test is started by

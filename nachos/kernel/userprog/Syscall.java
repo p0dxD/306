@@ -179,7 +179,8 @@ public class Syscall {
 
 		space.initRegisters();		// set the initial register values
 		space.restoreState();		// load page table register
-
+		
+		
 		CPU.runUserCode();			// jump to the user progam
 		Debug.ASSERT(false);		// machine->Run never returns;
 		// the address space exits
@@ -457,13 +458,15 @@ public class Syscall {
 	lockStatus.release();
     }
     
+    
     /**
      * 
      * 
      */
     public static void predictCPU(UserThread thread, int burst) {
-	lockStatus.acquire();
 	thread.setBurst(burst);
-	lockStatus.release();
+	//yield cpu to set on correct position on queue
+	Nachos.scheduler.yieldThread();
+
     }
 }

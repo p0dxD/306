@@ -25,10 +25,9 @@ import nachos.machine.CPU;
  * @author Peter Druschel (Rice University), Java translation
  * @author Eugene W. Stark (Stony Brook University)
  */
-public class UserThread extends NachosThread {
+public class UserThread extends NachosThread{
     /** The context in which this thread will execute. */
     public final AddrSpace space;
-    public boolean inKernelMode = false;
     //each thread has its own pageTable
 //    private TranslationEntry pageTable[];
 
@@ -40,11 +39,12 @@ public class UserThread extends NachosThread {
 
     /** User-level CPU register state. */
     private int userRegisters[] = new int[MIPS.NumTotalRegs];
-    
+     
     private int mode = 0;  // the mode that the address is in. 0 for User, 1 for kernel
     private int predictedBurst = 1; // a user defined burst length, 1 for default
     public int timeInserted = 0; // the machine time of inserting into queue
-   
+    private int argInt = 0;
+    
     public ConsoleDriver console;
     /**
      * Initialize a new user thread.
@@ -57,13 +57,8 @@ public class UserThread extends NachosThread {
      */
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
-//	
 	space = addrSpace;
 	//find the set stack size throughout the system, then allocate mem for thread's own stack. 
-
-	
-
-
     }
     
 
@@ -102,6 +97,13 @@ public class UserThread extends NachosThread {
 	space.restoreState();
     }
     
+    public void setArgInt(int argInt){
+	this.argInt = argInt; 
+    }
+    
+    public int getArgInt(){
+	return this.argInt;
+    }
     /**
      * get tick bursts
      * @return
@@ -123,9 +125,6 @@ public class UserThread extends NachosThread {
      * @param num (0 for user, 1 for kernel)
      */
     public void setMode(int num) {
-	  if (num != 0 || num != 1)
-	      return;
-	  else 
 	      mode = num;
     }
           
@@ -137,5 +136,6 @@ public class UserThread extends NachosThread {
     public int getMode() {
 	  return mode;
     }
+
  
 }

@@ -14,8 +14,11 @@
 
 package nachos.kernel.threads;
 
+import java.util.Comparator;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.userprog.UserThread;
 import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
@@ -57,22 +60,27 @@ import nachos.util.SRTComparator;
 public class Scheduler {
 
     /** Queue of threads that are ready to run, but not running. */
-    private final Queue<NachosThread> readyList;
+    private final Queue<NachosThread> readyListUser;
+    private final Queue<NachosThread> readyListKernel;
 
     /** Queue of CPUs that are idle. */
     private final Queue<CPU> cpuList;
-    
+
     /** Terminated thread awaiting reclamation of its stack. */
     private volatile NachosThread threadToBeDestroyed;
 
     /** Spin lock for mutually exclusive access to scheduler state. */
     private final SpinLock mutex = new SpinLock("scheduler mutex");
-    
+
     /** Quantum for preemptive scheduling */
     private final static int QUANTUM = 1000;    
-    
+
     /** time to use when checking quantum */
     private static int currentTime = 0;
+
+    /**Array with quantums*/
+    private static int[] quantums;
+    private static CPU[] cpus;
 
     /**
      * Initialize the scheduler.
@@ -83,32 +91,44 @@ public class Scheduler {
      */
     public Scheduler(NachosThread firstThread) {
 	// If RR or FCFS, make a FIFO Queue, otherwise, make a priority queue
+	readyListKernel = new FIFOQueue<NachosThread>();
 	switch(Nachos.options.SCHEDULING_MODE) {
-		case 0: 	;
-		case 1:		readyList = new FIFOQueue<NachosThread>();
-				break;
-		case 2: 	SPNComparator spn = new SPNComparator();
-		    		readyList = new PriorityQueue<NachosThread>(1, spn);
-		    		break;
-		case 3: 	SRTComparator srt = new SRTComparator();
-    				readyList = new PriorityQueue<NachosThread>(1, srt);
-    				break;
-		case 4:		HRRNComparator hrrn = new HRRNComparator();
-				readyList = new PriorityQueue<NachosThread>(1, hrrn);
-				break;
-		default:	readyList = new FIFOQueue<NachosThread>();
+	case 0:
+	case 1:		
+	    	readyListUser = new FIFOQueue<NachosThread>();
+	break;
+	case 2:
+	    	Comparator<NachosThread> spn = new SPNComparator();
+	    	readyListUser = new PriorityQueue<NachosThread>(1,spn);
+	    	break;
+	case 3: 	
+	    	Comparator<NachosThread> srt = new SRTComparator();
+	    	readyListUser = new PriorityQueue<NachosThread>(1, srt);
+		break;
+	case 4:		
+	    	Comparator<NachosThread> hrrn = new HRRNComparator();
+		readyListUser = new PriorityQueue<NachosThread>(1, hrrn);
+		break;
+	default:	
+	    	readyListUser = new FIFOQueue<NachosThread>();
+		break;
 	}
-	
+
 	cpuList = new FIFOQueue<CPU>();
 
 	Debug.println('t', "Initializing scheduler");
 
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.
+	cpus = new CPU[Machine.NUM_CPUS];
+	quantums = new int[Machine.NUM_CPUS];
+
 	for(int i = 0; i < Machine.NUM_CPUS; i++) {
 	    CPU cpu = Machine.getCPU(i);
+	    cpus[i] = cpu;
+	    quantums[i] = 0;
 	    cpuList.offer(cpu);
-	    if(Nachos.options.CPU_TIMERS) {
+	    if(Nachos.options.CPU_TIMERS||Nachos.options.SCHEDULING_MODE == 1) {
 		Timer timer = cpu.timer;
 		timer.setHandler(new TimerInterruptHandler(timer));
 		if(Nachos.options.RANDOM_YIELD)
@@ -131,7 +151,10 @@ public class Scheduler {
 	    cpu.timer.stop();
 	}
     }
-
+    
+    //yield after cpu after we get a syscall
+    //have a timer that is global 
+    
     /**
      * Mark a thread as ready, but not running, and put it on the ready list
      * for later scheduling onto a CPU.
@@ -174,11 +197,30 @@ public class Scheduler {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
 
 	Debug.println('t', "Putting thread on ready list: " + thread.name);
-
 	thread.setStatus(NachosThread.READY);
-	readyList.offer(thread);
+
+	if(isKernelThread(thread)){
+	    readyListKernel.offer(thread);
+	    Debug.println('A', ("Added to kernel Queue."));
+	}
+	else{
+	    readyListUser.offer(thread);
+	    
+	    
+	    Debug.println('A', ("Added to User Queue."));
+//	    ((PriorityQueue<NachosThread>) readyListUser).displayElements();
+	}
     }
 
+    /**
+     * Checks whether a given thread is kernel or user
+     * @param thread to check
+     * @return true if its kernel, else if its user
+     */
+    private boolean isKernelThread(NachosThread thread){
+	//check if kernel 
+	return thread.getClass().getName().equals("nachos.machine.NachosThread");
+    }
     /**
      * If there are idle CPUs and threads ready to run, dispatch threads on CPUs
      * until either all CPUs are in use or no more threads are ready to run.
@@ -187,8 +229,12 @@ public class Scheduler {
      */
     private void dispatchIdleCPUs() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
-	while(!readyList.isEmpty() && !cpuList.isEmpty()) {
-	    NachosThread thread = readyList.poll();
+	while((!readyListKernel.isEmpty() ||!readyListUser.isEmpty()) && !cpuList.isEmpty()) {
+	    NachosThread thread = null;
+	    if(readyListKernel.isEmpty())
+		thread = readyListUser.poll();
+	    else
+		thread = readyListKernel.poll();
 	    CPU cpu = cpuList.poll();
 	    Debug.println('t', "Dispatching " + thread.name + " on " + cpu.name);
 	    cpu.dispatch(thread);
@@ -207,7 +253,11 @@ public class Scheduler {
     private NachosThread findNextToRun() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	mutex.acquire();
-	NachosThread result = readyList.poll();
+	NachosThread result = null;
+	if(readyListKernel.isEmpty())
+	    result = readyListUser.poll();
+	else
+	    result = readyListKernel.poll();
 	mutex.release();
 	return result;
     }
@@ -238,20 +288,36 @@ public class Scheduler {
 	CPU currentCPU = CPU.currentCPU();
 	NachosThread currentThread = NachosThread.currentThread();
 	NachosThread nextThread = findNextToRun();
-
 	// If the current thread wants to keep running and there is no other thread to run,
 	// do nothing.
 	if(status == NachosThread.RUNNING && nextThread == null) {
 	    Debug.println('t', "No other thread to run -- " + currentThread.name
-		    			+ " continuing");
+		    + " continuing");
 	    return;
 	}
+
+//	//	check what type of thread we have, if running in kernel leave
+//	//	else we exchange from one in kernel
+//	if(!isKernelThread(currentThread)&&(status == NachosThread.RUNNING)){
+//	    if(((UserThread)currentThread).getMode() == 1){
+//		System.out.println("Program is running in kernel");
+//		mutex.acquire();
+//		makeReady(nextThread);//add it back
+//		mutex.release();
+//		//current thread is running in kernel mode
+//		//leave it to run
+////		clearCurrentQuantum();
+//		return;
+//	    }
+//	}
+	
 	Debug.println('t', "Next thread to run: "
 		+ (nextThread == null ? "(none)" : nextThread.name));
 
 	// The current thread will be suspending -- save its context.
 	currentThread.saveState();
 
+	
 	mutex.acquire();
 	if(toRelease != null)
 	    toRelease.release();
@@ -362,7 +428,7 @@ public class Scheduler {
 	// before making it the thread to be destroyed, because we don't want
 	// someone to try to destroy a thread that is not FINISHED.
 	currentThread.setStatus(NachosThread.FINISHED);
-	
+
 	// Delete the carcass of any thread that died previously.
 	// This ensures that there is at most one dead thread ever waiting
 	// to be cleaned up.
@@ -374,12 +440,16 @@ public class Scheduler {
 	threadToBeDestroyed = currentThread;
 	mutex.release();
 
+	clearCurrentQuantum();
+
 	yieldCPU(NachosThread.FINISHED, null);
 	// not reached
-
 	// Interrupts will be re-enabled when the next thread runs or the
 	// current CPU goes idle.
     }
+
+
+
     /**
      * Causes the calling thread to relinquish the CPU
      * @param ticks to schedule a callout
@@ -398,17 +468,41 @@ public class Scheduler {
 	    public void run() {
 		// TODO Auto-generated method stub
 		Debug.println('C',"Sleeping thread for " +ticks );
-		
+
 		sem.V();
 	    }}, ticks);
 	Debug.println('C',"Thread is sleeping ready to be awaken");
 	sem.P();
 	Debug.println('C',"Thread awaken");
     }
-    
+
     public int getCurrentTime() {
 	return currentTime;
     }
+
+    /**
+     * Gets index of currect cpu in array
+     * @return index
+     */
+    private static int getCPUIndex(){
+	CPU currentCPU = CPU.currentCPU();
+	int i = 0;
+	for(; i < Machine.NUM_CPUS; i++){
+	    if(cpus[i] == currentCPU){
+		return i;
+	    }
+	}
+	return -1;
+    }
+    
+    /**
+     * Clears quantum on current CPU
+     */
+    private static void clearCurrentQuantum(){
+	int i = getCPUIndex();
+	quantums[i] = 0;
+    }
+    
     //TODO: should a blocked state yield the CPU?
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
@@ -431,17 +525,27 @@ public class Scheduler {
 	}
 
 	public void handleInterrupt() {
-	    currentTime += 100;
+	    //increase quantum only if userThread running
 	    Debug.println('i', "Timer interrupt: " + timer.name);
+	    if(Nachos.options.SCHEDULING_MODE == Nachos.options.RR_SCHEDULING){
+		int i = getCPUIndex();
+		if(quantums[i] < QUANTUM){
+		    quantums[i]+=100;
+		    return;
+		}
+		//reset it
+		quantums[i] = 0;
+		yieldOnReturn();
+	    }	    
 	    // Note that instead of calling yield() directly (which would
 	    // suspend the interrupt handler, not the interrupted thread
 	    // which is what we wanted to context switch), we set a flag
 	    // so that once the interrupt handler is done, it will appear as 
 	    // if the interrupted thread called yield at the point it is 
 	    // was interrupted.
-	    if ((Nachos.options.SCHEDULING_MODE == 1 || Nachos.options.SCHEDULING_MODE == 3) &&
-		    currentTime % QUANTUM == 0)
-		yieldOnReturn();
+
+	    yieldOnReturn();
+
 	}
 
 	/**
@@ -467,6 +571,8 @@ public class Scheduler {
 		}
 	    });
 	}
+
+
 
     }
 }

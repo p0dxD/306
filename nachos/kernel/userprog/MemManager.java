@@ -78,7 +78,9 @@ public class MemManager {
 	UserThread currentThread = (UserThread)NachosThread.currentThread();
   	removeAddress(space);
   	//bring back to normal user mode
-  	currentThread.inKernelMode = false;
+  	currentThread.setMode(0);
+  	System.out.println("MODE CHANGED TO 0" + " FINISHED " +currentThread.getBurst());
+  	
   	Nachos.scheduler.finishThread();
     }
     
@@ -158,7 +160,8 @@ public class MemManager {
         lockPhysical.release();
         
         lockMaping.acquire();
-        maping.remove(space.getSpaceId());
+        //TODO:Find a new way to remove this reference
+//        maping.remove(space.getSpaceId());
         lockMaping.release();
 
         
@@ -290,7 +293,8 @@ public class MemManager {
      * @param physicalChild
      */
     public void addReferenceFromFork(AddrSpace space, ArrayList<Integer> physicalChild){
-    	lockMaping.acquire();
+    	System.out.println(space.getSpaceId());
+	lockMaping.acquire();
     	ArrayList<Integer> parentPhysicalSpots = maping.get(space.getSpaceId());
     	lockMaping.release();
     	

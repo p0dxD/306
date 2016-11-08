@@ -1,9 +1,7 @@
 #include "syscall.h"
-int main(){
-	int i,j;
-	for(i =0, j =0; i < 1;i++)
-		j++;
+int main(int n){
+	int i;
+	PredictCPU(10*n);
+	for(i =0; i < n;i++)
 	;
-	Write("a\r\n",3,1);
-	
 }
