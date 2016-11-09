@@ -46,6 +46,7 @@ public class UserThread extends NachosThread{
     private int timeInserted = 0; // the machine time of inserting into queue
     private int argInt = 0;
     private int currentFeedBackQueue = 0;
+    private int turnAroundTime = 0;
     
     public ConsoleDriver console;
     /**
