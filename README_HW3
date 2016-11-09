@@ -2,7 +2,7 @@ Added Components HW3
 1. First-come, first-served (FCFS, non-preemptive): For this mode the 
 	default implemantation was left, it utilizes two FIFOQueues one for user threads
 	and one for the kernel threads.
-FLAG: 
+FLAG: no flag 
 
 2. Round-robin (RR, preemptive): For this two queues are used one for the UserThreads
 	and one for the Kernel threads, both are FIFOQueues. The scheduler chooses from 
@@ -17,13 +17,13 @@ FLAG: -rr
 	queue at the correct location, only the user threads happen to go through this. The program
 	then runs till the end once it has been positioned to the correct location without further 
 	interruptions.
-FLAG: 
+FLAG: -spn
 
 4. Shortest remaining time first (SRT, preemptive upon process arrival): It uses the same queues as
 	the SPN but in this case we preempt when a process arrives , we run this one or we run a kernel
 	if there is a kernel thread waiting on the FIFO queue. 
 
-FLAG: -spn
+FLAG: -srt
 
 5. Highest response-ratio next (HRRN, non-preemptive): 
 
@@ -31,4 +31,4 @@ FLAG: -hrrn
 
 6. Feedback scheduling (preemptive, use 5 queues):
 
-FLAG:
+FLAG: -fbs

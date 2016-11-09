@@ -45,6 +45,7 @@ public class UserThread extends NachosThread{
     private int predictedBurst = 1; // a user defined burst length, 1 for default
     private int timeInserted = 0; // the machine time of inserting into queue
     private int argInt = 0;
+    private int currentFeedBackQueue = 0;
     
     public ConsoleDriver console;
     /**
@@ -145,5 +146,21 @@ public class UserThread extends NachosThread{
     
     public void setStartTime(int newTime){
 	this.timeInserted = newTime;
+    }
+    
+    /**
+     * 
+     * @param queue
+     */
+    public void setCurrentFeedBackQueue(int queue){
+	this.currentFeedBackQueue = queue;
+    }
+    
+    /**
+     * Queue we are currently in
+     * @return current queue
+     */
+    public int getCurrentFeedBackQueue(){
+	return this.currentFeedBackQueue;
     }
 }

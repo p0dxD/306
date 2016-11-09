@@ -190,6 +190,8 @@ public class Options {
     
     public int FCFS_SCHEDULING = 0;
     
+    public int FEEDBACK_SCHEDULING = 5;
+    
     public int SCHEDULING_MODE = FCFS_SCHEDULING;
     
     public Options(String[] args) {
@@ -352,6 +354,14 @@ public class Options {
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				SCHEDULING_MODE = SPN_SCHEDULING;
+			    }
+			 }),
+		new Spec("-fbs",  // set scheduling to spn
+			new Class[] { },
+			 null,
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				SCHEDULING_MODE = FEEDBACK_SCHEDULING;
 			    }
 			 })
 	});

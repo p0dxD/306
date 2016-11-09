@@ -81,7 +81,30 @@ public class Scheduler {
     /**Array with quantums*/
     private static int[] quantums;
     private static CPU[] cpus;
+    private static int[] currentQueueLocation;
 
+    /**For the feedback*/
+    private final Queue<NachosThread> readyList1;
+    private final Queue<NachosThread> readyList2;
+    private final Queue<NachosThread> readyList3;
+    private final Queue<NachosThread> readyList4;
+    /**Location for thread*/
+    private static final int QUEUE1 = 0;
+    private static final int QUEUE2 = 1;
+    private static final int QUEUE3 = 2;
+    private static final int QUEUE4 = 3;
+    private static final int QUEUE5 = 4;
+    
+    /**Quantum for the different queues*/
+    private static final int QUEUE1_QUANTUM = QUANTUM;
+    private static final int QUEUE2_QUANTUM = 2 * QUEUE1_QUANTUM;
+    private static final int QUEUE3_QUANTUM = 2 * QUEUE2_QUANTUM;
+    private static final int QUEUE4_QUANTUM = 2 * QUEUE3_QUANTUM;
+    private static final int QUEUE5_QUANTUM = 2 * QUEUE4_QUANTUM;
+    
+    /**Mode for user thread*/
+    private static final int KERNEL = 1;
+    private static final int USER = 0;
     /**
      * Initialize the scheduler.
      * Set the list of ready but not running threads to empty.
@@ -92,6 +115,13 @@ public class Scheduler {
     public Scheduler(NachosThread firstThread) {
 	// If RR or FCFS, make a FIFO Queue, otherwise, make a priority queue
 	readyListKernel = new FIFOQueue<NachosThread>();
+	
+	//five queue feedback
+	readyList1 = new FIFOQueue<NachosThread>();
+	readyList2 = new FIFOQueue<NachosThread>();
+	readyList3 = new FIFOQueue<NachosThread>();
+	readyList4 = new FIFOQueue<NachosThread>();
+	
 	switch(Nachos.options.SCHEDULING_MODE) {
 	case 0:
 	case 1:		
@@ -109,6 +139,10 @@ public class Scheduler {
 	    	Comparator<NachosThread> hrrn = new HRRNComparator();
 		readyListUser = new PriorityQueue<NachosThread>(1, hrrn);
 		break;
+	case 5:
+	    	//this queue will be used as rr
+	    	readyListUser = new FIFOQueue<NachosThread>();
+	    	break;
 	default:	
 	    	readyListUser = new FIFOQueue<NachosThread>();
 		break;
@@ -122,7 +156,9 @@ public class Scheduler {
 	// if we are using them.
 	cpus = new CPU[Machine.NUM_CPUS];
 	quantums = new int[Machine.NUM_CPUS];
-
+	//to use 
+	currentQueueLocation = new int[Machine.NUM_CPUS];
+	
 	for(int i = 0; i < Machine.NUM_CPUS; i++) {
 	    CPU cpu = Machine.getCPU(i);
 	    cpus[i] = cpu;
@@ -206,6 +242,7 @@ public class Scheduler {
 	    Debug.println('A', ("Added to kernel Queue."));
 	}
 	else{
+	    if(Nachos.options.SCHEDULING_MODE != Nachos.options.FEEDBACK_SCHEDULING){
 	    readyListUser.offer(thread);
 	    //if its STR we yield to position it in the right position,
 	    //if the previous one is still the smallest it keeps running
@@ -214,7 +251,20 @@ public class Scheduler {
 		this.yieldThread();
 	    }
 	    Debug.println('A', ("Added to User Queue."));
-//	    ((PriorityQueue<NachosThread>) readyListUser).displayElements();
+	    }else{
+		    if(((UserThread)thread).getCurrentFeedBackQueue() == QUEUE1) {
+			readyListUser.offer(thread);
+		    } else if (((UserThread)thread).getCurrentFeedBackQueue() == QUEUE2) {
+			readyList1.offer(thread);
+		    } else if (((UserThread)thread).getCurrentFeedBackQueue() == QUEUE3) {
+			readyList2.offer(thread);
+		    } else if (((UserThread)thread).getCurrentFeedBackQueue() == QUEUE4) {
+			readyList3.offer(thread);
+		    } else if (((UserThread)thread).getCurrentFeedBackQueue() == QUEUE5) {
+			readyList4.offer(thread);
+		    } 
+	    }
+
 	}
     }
 
@@ -262,8 +312,24 @@ public class Scheduler {
 	NachosThread result = null;
 	if(readyListKernel.isEmpty())
 	    result = readyListUser.poll();
-	else
-	    result = readyListKernel.poll();
+	else{
+	    if(Nachos.options.SCHEDULING_MODE != Nachos.options.FEEDBACK_SCHEDULING){
+		result = readyListKernel.poll();
+	    Debug.println('A', ("Added to User Queue."));
+	    }else{
+		    if (!readyListUser.isEmpty()) {
+			result = readyListUser.poll();
+		    } else if (!readyList1.isEmpty()) {
+			result = readyList1.poll();
+		    } else if (!readyList2.isEmpty()) {
+			result = readyList2.poll();
+		    } else if (!readyList3.isEmpty()) {
+			result = readyList3.poll();
+		    } else if (!readyList4.isEmpty()) {
+			result = readyList4.poll();
+		    }
+	    }
+	}
 	mutex.release();
 	return result;
     }
@@ -304,18 +370,11 @@ public class Scheduler {
 
 //	//	check what type of thread we have, if running in kernel leave
 //	//	else we exchange from one in kernel
-//	if(!isKernelThread(currentThread)&&(status == NachosThread.RUNNING)){
-//	    if(((UserThread)currentThread).getMode() == 1){
-//		System.out.println("Program is running in kernel");
-//		mutex.acquire();
-//		makeReady(nextThread);//add it back
-//		mutex.release();
-//		//current thread is running in kernel mode
-//		//leave it to run
-////		clearCurrentQuantum();
-//		return;
-//	    }
-//	}
+	if(!isKernelThread(currentThread)){
+	    if((((UserThread)currentThread).getMode()) == KERNEL){
+		Debug.println('A', "User is Running in kernel, continueing");
+	    }
+	}
 	
 	Debug.println('t', "Next thread to run: "
 		+ (nextThread == null ? "(none)" : nextThread.name));
@@ -502,6 +561,28 @@ public class Scheduler {
     }
     
     /**
+     * Gets index of currect quantum in array
+     * @return index
+     */
+    private static int getQuantumOfCurrentProcess(){
+	UserThread thread = (UserThread) NachosThread.currentThread();
+
+	    switch(thread.getCurrentFeedBackQueue()){
+	    case QUEUE1:
+		return QUEUE1_QUANTUM;
+	    case QUEUE2:
+		return QUEUE2_QUANTUM;
+	    case QUEUE3:
+		return QUEUE3_QUANTUM;
+	    case QUEUE4:
+		return QUEUE4_QUANTUM;
+	    case QUEUE5:
+		return QUEUE4_QUANTUM;
+	    }
+	    return -1;
+    }
+    
+    /**
      * Clears quantum on current CPU
      */
     private static void clearCurrentQuantum(){
@@ -513,8 +594,10 @@ public class Scheduler {
      * Update the time for HRRN
      */
     private void incrementTimeForHRRN(){
+	mutex.acquire();
 	if(!readyListUser.isEmpty())
 	    PriorityQueue.incrementTime((PriorityQueue<NachosThread>) readyListUser);
+	mutex.release();
     }
     //TODO: should a blocked state yield the CPU?
     /**
@@ -558,6 +641,13 @@ public class Scheduler {
 		return;
 	    }
 	    
+	    if(Nachos.options.SCHEDULING_MODE == Nachos.options.FEEDBACK_SCHEDULING){
+		int i = getCPUIndex();
+		if(quantums[i] < getQuantumOfCurrentProcess()){
+		    quantums[i]+=100;
+		    return;
+		}
+	    }
 	    // Note that instead of calling yield() directly (which would
 	    // suspend the interrupt handler, not the interrupted thread
 	    // which is what we wanted to context switch), we set a flag
