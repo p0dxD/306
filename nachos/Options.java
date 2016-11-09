@@ -194,6 +194,9 @@ public class Options {
     
     public int SCHEDULING_MODE = FCFS_SCHEDULING;
     
+    /**How many threads to run*/
+    public int THREADS_TO_RUN = 1;
+    
     public Options(String[] args) {
 	argList = Arrays.asList(args);
 	parseArgList();
@@ -325,43 +328,48 @@ public class Options {
 			    }
 			 }),
 		new Spec("-hrrn",  // set scheduling to hrrn
-			new Class[] { },
-			 null,
+			new Class[] {Integer.class},
+			"Usage: -hrrn <noft>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
-				SCHEDULING_MODE = HRRN_SCHEDULING;
+				SCHEDULING_MODE = HRRN_SCHEDULING; 				
+				THREADS_TO_RUN = (Integer)params[0];
 			    }
 			 }),
 		new Spec("-rr",  // set scheduling to round robin
-			new Class[] { },
-			 null,
+			new Class[] {Integer.class},
+			"Usage: -rr <noft>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				SCHEDULING_MODE = RR_SCHEDULING;
+				THREADS_TO_RUN = (Integer)params[0];
 			    }
 			 }),
 		new Spec("-srt",  // set scheduling to srt
-			new Class[] { },
-			 null,
+			new Class[] {Integer.class},
+			"Usage: -srt <noft>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				SCHEDULING_MODE = SRT_SCHEDULING;
+				THREADS_TO_RUN = (Integer)params[0];
 			    }
 			 }),
 		new Spec("-spn",  // set scheduling to spn
-			new Class[] { },
-			 null,
+			new Class[] {Integer.class},
+			"Usage: -spn <noft>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				SCHEDULING_MODE = SPN_SCHEDULING;
+				THREADS_TO_RUN = (Integer)params[0];
 			    }
 			 }),
 		new Spec("-fbs",  // set scheduling to spn
-			new Class[] { },
-			 null,
+			new Class[] {Integer.class},
+			"Usage: -fbs <noft>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				SCHEDULING_MODE = FEEDBACK_SCHEDULING;
+				THREADS_TO_RUN = (Integer)params[0];
 			    }
 			 })
 	});

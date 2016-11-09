@@ -76,10 +76,12 @@ public class MemManager {
      */
     public  void finishAddrs(AddrSpace space){
 	UserThread currentThread = (UserThread)NachosThread.currentThread();
+	Debug.println('A', "Time it took to execute: " + 
+		(Nachos.scheduler.getCurrentTime()-currentThread.getStartTime()));
   	removeAddress(space);
   	//bring back to normal user mode
   	currentThread.setMode(0);
-//  	System.out.println("MODE CHANGED TO 0" + " FINISHED " +currentThread.getBurst());
+  	
   	
   	Nachos.scheduler.finishThread();
     }

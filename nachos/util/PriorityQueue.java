@@ -18,27 +18,11 @@ public class PriorityQueue<T> extends java.util.PriorityQueue<T> implements Queu
 	
 	   Iterator<NachosThread> it = pq.iterator();
 	      
-	   System.out.println ( "Priority queue values are: ");
 	      
 	   while (it.hasNext()){
 	       UserThread ut = ((UserThread)it.next());
-	       System.out.print( "CurrentTime: "+ ut.getStartTime()); 
 	       ut.setStartTime(ut.getStartTime()+100);       
-	       System.out.print( "new Time: "+ ut.getStartTime()); 
 	   }
-	   System.out.println();
     }
     
-    
-    public void displayElements(){
-	
-	   Iterator<T> it = this.iterator();
-	      
-	   System.out.println ( "Priority queue values are: ");
-	      
-	   while (it.hasNext()){
-	       System.out.print( "Value: "+ ((UserThread)it.next()).getBurst()); 
-	   }
-	   System.out.println();
-    }
 }
