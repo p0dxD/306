@@ -30,6 +30,7 @@ import nachos.util.PriorityQueue;
 import nachos.util.Queue;
 import nachos.util.SPNComparator;
 import nachos.util.SRTComparator;
+import java.util.HashMap;
 
 /**
  * The scheduler is responsible for maintaining a list of threads that
@@ -102,6 +103,8 @@ public class Scheduler {
     private static final int QUEUE4_QUANTUM = 2 * QUEUE3_QUANTUM;
     private static final int QUEUE5_QUANTUM = 2 * QUEUE4_QUANTUM;
     
+    /** Current Thread running in each CPU*/
+    
     /**Mode for user thread*/
     private static final int KERNEL = 1;
     private static final int USER = 0;
@@ -166,7 +169,8 @@ public class Scheduler {
 	    cpuList.offer(cpu);
 	    //will start timers for RR, HRRN
 	    if(Nachos.options.CPU_TIMERS||Nachos.options.SCHEDULING_MODE == Nachos.options.RR_SCHEDULING 
-		    ||Nachos.options.SCHEDULING_MODE == Nachos.options.HRRN_SCHEDULING) {
+		    ||Nachos.options.SCHEDULING_MODE == Nachos.options.HRRN_SCHEDULING ||
+		    Nachos.options.SCHEDULING_MODE == Nachos.options.FEEDBACK_SCHEDULING) {
 		Timer timer = cpu.timer;
 		timer.setHandler(new TimerInterruptHandler(timer));
 		if(Nachos.options.RANDOM_YIELD)
@@ -285,14 +289,35 @@ public class Scheduler {
      */
     private void dispatchIdleCPUs() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
-	while((!readyListKernel.isEmpty() ||!readyListUser.isEmpty()) && !cpuList.isEmpty()) {
+	while((!readyListKernel.isEmpty() ||!readyListUser.isEmpty()||!readyList1.isEmpty()
+		||!readyList2.isEmpty()||!readyList3.isEmpty()||!readyList4.isEmpty())
+		&& !cpuList.isEmpty()) {
 	    NachosThread thread = null;
-	    if(readyListKernel.isEmpty())
-		thread = readyListUser.poll();
-	    else
-		thread = readyListKernel.poll();
+	    if(readyListKernel.isEmpty()){
+		 if(Nachos.options.SCHEDULING_MODE != Nachos.options.FEEDBACK_SCHEDULING){
+		     thread = readyListUser.poll();
+		 }
+		    else{		
+				    if (!readyListUser.isEmpty()) {
+					thread = readyListUser.poll();
+				    } else if (!readyList1.isEmpty()) {
+					thread = readyList1.poll();
+				    } else if (!readyList2.isEmpty()) {
+					thread = readyList2.poll();
+				    } else if (!readyList3.isEmpty()) {
+					thread = readyList3.poll();
+				    } else if (!readyList4.isEmpty()) {
+					thread = readyList4.poll();
+				    }
+				  }
+	    }
+	    else{ 
+  
+		    thread = readyListKernel.poll();
+	    }
 	    CPU cpu = cpuList.poll();
 	    Debug.println('t', "Dispatching " + thread.name + " on " + cpu.name);
+	    
 	    cpu.dispatch(thread);
 	    // The current CPU is not relinquished here -- immediate return.
 	}
@@ -316,7 +341,11 @@ public class Scheduler {
 	    if(Nachos.options.SCHEDULING_MODE != Nachos.options.FEEDBACK_SCHEDULING){
 		result = readyListKernel.poll();
 	    Debug.println('A', ("Added to User Queue."));
-	    }else{
+	    }
+	    else{
+		  if(Nachos.options.SCHEDULING_MODE != Nachos.options.FEEDBACK_SCHEDULING){
+		      result = readyListUser.poll();
+		  }else{
 		    if (!readyListUser.isEmpty()) {
 			result = readyListUser.poll();
 		    } else if (!readyList1.isEmpty()) {
@@ -328,6 +357,7 @@ public class Scheduler {
 		    } else if (!readyList4.isEmpty()) {
 			result = readyList4.poll();
 		    }
+		  }
 	    }
 	}
 	mutex.release();
@@ -560,27 +590,6 @@ public class Scheduler {
 	return -1;
     }
     
-    /**
-     * Gets index of currect quantum in array
-     * @return index
-     */
-    private static int getQuantumOfCurrentProcess(){
-	UserThread thread = (UserThread) NachosThread.currentThread();
-
-	    switch(thread.getCurrentFeedBackQueue()){
-	    case QUEUE1:
-		return QUEUE1_QUANTUM;
-	    case QUEUE2:
-		return QUEUE2_QUANTUM;
-	    case QUEUE3:
-		return QUEUE3_QUANTUM;
-	    case QUEUE4:
-		return QUEUE4_QUANTUM;
-	    case QUEUE5:
-		return QUEUE4_QUANTUM;
-	    }
-	    return -1;
-    }
     
     /**
      * Clears quantum on current CPU
@@ -643,10 +652,15 @@ public class Scheduler {
 	    
 	    if(Nachos.options.SCHEDULING_MODE == Nachos.options.FEEDBACK_SCHEDULING){
 		int i = getCPUIndex();
-		if(quantums[i] < getQuantumOfCurrentProcess()){
+		
+		if(quantums[i] < QUANTUM){
 		    quantums[i]+=100;
 		    return;
 		}
+		quantums[i] = 0;
+		//set the queue to be next if it took too long
+//		increaseQuantumOfCurrentProcess();
+		yieldOnReturn();
 	    }
 	    // Note that instead of calling yield() directly (which would
 	    // suspend the interrupt handler, not the interrupted thread

@@ -12,6 +12,7 @@ package nachos.kernel.userprog;
 
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
+import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.devices.ConsoleDriver;
 import nachos.machine.CPU;
@@ -61,6 +62,7 @@ public class UserThread extends NachosThread{
 	super(name, runObj);
 	space = addrSpace;
 	timeInserted = Nachos.scheduler.getCurrentTime();
+	Debug.println('A', "Time inserted: " + timeInserted);
 	//find the set stack size throughout the system, then allocate mem for thread's own stack. 
     }
     

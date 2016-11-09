@@ -8,7 +8,7 @@ import java.util.Random;
 
 public class ExecTest implements Runnable {
     private int sleepingThreadQuantum = 1000;
-    static int processesCount = 500;
+    static int processesCount = Nachos.options.THREADS_TO_RUN;
     
     public static void start() {
 	NachosThread thread = new NachosThread("Exec test", new ExecTest());
@@ -78,6 +78,7 @@ public class ExecTest implements Runnable {
     
 
     public void test3() {
+	Debug.println('A', ("Asked to run " + processesCount + " processes"));
     	sleepThreadDriver(processesCount);
     }
 
@@ -90,7 +91,7 @@ public class ExecTest implements Runnable {
     	int finishedProcesses = 0;
     	while(finishedProcesses < processesCount){
     		randSleepExecProcess(0.1,1000,2000);
-    		System.out.println("SleepThreadDriver():Finished process no. "+ (finishedProcesses+1));
+    		Debug.println('A', ("SleepThreadDriver():Finished process no. "+ (finishedProcesses+1)));
     		finishedProcesses++;
     	}
     }
@@ -150,6 +151,7 @@ public class ExecTest implements Runnable {
      */
     public int launchProcessIterate(int min, int max){
     	int burst = getRandomInt(min,max);
+    	Debug.println('A', ("Executing program with burst " + burst * 10));
     	new ProgTest("test/predict1", 1, burst * 10);
     	processesCount++;
     	//System.out.println("launchProcessIterate(): burst value = " + burst);

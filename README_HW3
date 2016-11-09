@@ -1,3 +1,6 @@
+Jose Rodriguez 107927299
+Kathryn 
+
 Added Components HW3
 1. First-come, first-served (FCFS, non-preemptive): For this mode the 
 	default implemantation was left, it utilizes two FIFOQueues one for user threads
@@ -25,10 +28,27 @@ FLAG: -spn
 
 FLAG: -srt
 
-5. Highest response-ratio next (HRRN, non-preemptive): 
+5. Highest response-ratio next (HRRN, non-preemptive): Uses same queues as the other ones and activates
+	interrupts which add 100 each time to those threads already in the queue. The new value being inserted is
+	calculated with (w+s)/s and inserted on the right position according to the values updated. 
 
 FLAG: -hrrn
 
-6. Feedback scheduling (preemptive, use 5 queues):
+6. Feedback scheduling (preemptive, use 5 queues): This contains 4 FIFO and one RR queue which act on different
+	policies quantum. The first queue is up to 1000, the second 2 times this, etc. till we get to the last one. 
+	When an item arrives it gets inserted to the first queue, and its value of next queue insert is increased.
+	If it was to be reinserted then it will be in the next queue. This happens till the queue ends up at the last one.
+	The quantum is checked within the interrupt handler.
 
 FLAG: -fbs
+
+
+	The test causes the thread to sleep for the given number of ticks and creates a process when it wakes up, 
+randomness is calculated using exponential randomness. This creates threads and sleeps at different intervals 
+with different bursts. Testing was done in multiple CPU's as well as single CPU with 
+other flags turned on. 
+
+Note: The stack size takes majority of memory, and at most 10 programs or so can be run.
+
+The flags to see ouput are A and if more information needs to be seen about processes
+running and executing the flag S can be used.
