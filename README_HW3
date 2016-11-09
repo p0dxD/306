@@ -1,7 +1,8 @@
 Jose Rodriguez 107927299
 Kathryn Blecher 108871623
 
-Added Components HW3
+
+Added Components HW3:
 1. First-come, first-served (FCFS, non-preemptive): For this mode the 
 	default implemantation was left, it utilizes two FIFOQueues one for user threads
 	and one for the kernel threads.
