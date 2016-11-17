@@ -43,6 +43,9 @@ package nachos;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import nachos.machine.Disk;
+
 import java.util.Iterator;
 
 
@@ -121,7 +124,7 @@ public class Options {
     public int NUM_PORTS = 1;
     
     /** The types of disk devices on the system. */
-    public Class<?>[] DISK_TYPES = new Class<?>[] { /* Disk.class */ };
+    public Class<?>[] DISK_TYPES = new Class<?>[] {  Disk.class  };
 
     /** The number of disks on the system. */
     public int NUM_DISKS = DISK_TYPES.length;
@@ -370,6 +373,18 @@ public class Options {
 			    public void processOption(String flag, Object[] params) {
 				SCHEDULING_MODE = FEEDBACK_SCHEDULING;
 				THREADS_TO_RUN = (Integer)params[0];
+			    }
+			 }),
+		
+		new Spec("-fs",  // set scheduling to spn
+			new Class[] {String.class},
+			"Usage: -fs <type>",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				System.out.println("IN -fs");
+				FILESYS_TEST = true;
+				FILESYS_STUB = false;
+				FILESYS_REAL = true;
 			    }
 			 })
 	});

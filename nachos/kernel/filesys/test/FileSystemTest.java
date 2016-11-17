@@ -284,7 +284,16 @@ public class FileSystemTest implements Runnable {
 			    public void processOption(String flag, Object[] params) {
 				performanceTest();
 			    }
-			 })
+			 }),	
+			new Options.Spec
+			("-C",  // print entire filesystem
+				 new Class[] { String.class},
+				 null,
+				 new Options.Action() {
+				    public void processOption(String flag, Object[] params) {
+					Nachos.fileSystem.create((String)params[0], 20);
+				    }
+				 })
 	 });
 	Nachos.scheduler.finishThread();
     }
