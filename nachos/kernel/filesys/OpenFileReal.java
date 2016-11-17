@@ -11,6 +11,10 @@
 package nachos.kernel.filesys;
 
 import nachos.Debug;
+import nachos.kernel.threads.SpinLock;
+import nachos.machine.CPU;
+import nachos.util.FIFOQueue;
+import nachos.util.Queue;
 
 /**
  * This is a class for managing an open Nachos file.  As in UNIX, a
@@ -49,7 +53,8 @@ class OpenFileReal implements OpenFile {
 
     /** Current position within the file. */
     private int seekPosition;
-
+    
+    
     /**
      * Open a Nachos file for reading and writing.  Bring the file header
      * into memory while the file is open.  This constructor is not public,
@@ -247,5 +252,6 @@ class OpenFileReal implements OpenFile {
 	hdr = null;  // Ensure further access fails.
 	return(1);
     }
+    
 
 }

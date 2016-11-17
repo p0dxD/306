@@ -18,6 +18,7 @@ public class WorkEntry {
     private int sectorNumber;
     private char taskToBeCompleted = '\0';//w for write, r for read
     private byte[] buffer;
+    private int indexOffset;
     
     /**
      * A WorkEntry consists of four parts, sector, buffer, task, and a semaphore
@@ -25,11 +26,12 @@ public class WorkEntry {
      * @param buffer the contents
      * @param taskToBeCompleted either write or read
      */
-    public WorkEntry(int sectorNumber, byte[] buffer, char taskToBeCompleted){
+    public WorkEntry(int sectorNumber, byte[] buffer,int indexOffset, char taskToBeCompleted){
 	semaphore = new Semaphore("WorkEntry",0);
 	this.sectorNumber = sectorNumber;
 	this.buffer = buffer;
 	this.taskToBeCompleted = taskToBeCompleted;
+	this.setIndexOffset(indexOffset);
     }
     
     
@@ -60,6 +62,16 @@ public class WorkEntry {
     }
     public void setBuffer(byte[] buffer) {
 	this.buffer = buffer;
+    }
+
+
+    public int getIndexOffset() {
+	return indexOffset;
+    }
+
+
+    public void setIndexOffset(int indexOffset) {
+	this.indexOffset = indexOffset;
     }
     
 }

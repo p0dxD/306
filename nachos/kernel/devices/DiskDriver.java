@@ -20,9 +20,14 @@ package nachos.kernel.devices;
 
 import nachos.Debug;
 import nachos.machine.Machine;
+import nachos.util.FIFOQueue;
+import nachos.util.Queue;
+import nachos.machine.CPU;
 import nachos.machine.Disk;
 import nachos.machine.InterruptHandler;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
+import nachos.kernel.filesys.WorkEntry;
 import nachos.kernel.threads.Lock;
 
 
@@ -52,6 +57,13 @@ public class DiskDriver {
     /** Only one read/write request can be sent to the disk at a time. */
     private Lock lock;
 
+    /**Work queue containing what to read and write*/
+    private Queue<WorkEntry> workEntries = new FIFOQueue<>();
+    
+    /**Spinlock for the queue*/
+    private static final SpinLock mutex = new SpinLock("workqueue mutex");
+    
+    
     /**
      * Initialize the synchronous interface to the physical disk, in turn
      * initializing the physical disk.
@@ -93,8 +105,15 @@ public class DiskDriver {
      */
     public void readSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
+	addToQueue(new WorkEntry(sectorNumber, data, index, 'r'));
 	lock.acquire();			// only one disk I/O at a time
-	disk.readRequest(sectorNumber, data, index);
+	WorkEntry entry = getWorkEntry();
+	if(entry == null){
+	    Debug.println('F', "Queue is done with tasks.");
+	    return;
+	}
+	disk.readRequest(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
+	semaphore = entry.getSemaphore();
 	semaphore.P();			// wait for interrupt
 	lock.release();
     }
@@ -109,12 +128,58 @@ public class DiskDriver {
      */
     public void writeSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
+	addToQueue(new WorkEntry(sectorNumber, data, index, 'w'));
 	lock.acquire();			// only one disk I/O at a time
-	disk.writeRequest(sectorNumber, data, index);
+	WorkEntry entry = getWorkEntry();
+	if(entry == null){
+	    Debug.println('F', "Queue is done with tasks.");
+	    return;
+	}
+	disk.writeRequest(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
+	semaphore = entry.getSemaphore();
 	semaphore.P();			// wait for interrupt
 	lock.release();
     }
-
+    
+    /**Adds to current queue*/
+    public void addToQueue(WorkEntry workEntry){
+	//we dissable interrups
+	int oldLevel = CPU.setLevel(CPU.IntOff);
+	mutex.acquire();
+	workEntries.offer(workEntry);
+	mutex.release();
+	CPU.setLevel(oldLevel);
+    }
+    
+    /**Process the requested task, read or write*/
+    public WorkEntry getWorkEntry(){
+	//get the next entry to process
+	mutex.acquire();
+	WorkEntry  entry = workEntries.poll();
+	mutex.release();
+	
+	if(entry == null){
+	    Debug.println('F', "Queue has no entries");
+	    return null;
+	}
+	return entry;
+    }
+    
+    /**Process task on queue*/
+    public void processTask(){
+	WorkEntry entry = getWorkEntry();
+	if(entry == null) return;
+	if(entry.getTaskToBeCompleted()=='r'){
+	    readSector(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
+	}else if(entry.getTaskToBeCompleted() == 'w'){
+	    writeSector(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
+	}else{
+	    Debug.println('F', "Error with task trying to be completed");
+	    return;  
+	}
+    }
+    
+    
     /**
      * DiskDriver interrupt handler class.
      */
@@ -125,6 +190,18 @@ public class DiskDriver {
 	 */
 	public void handleInterrupt() {
 	    semaphore.V();
+	    processTaskOnReturn();
+	}
+	
+	/**Runs any tasks left to be run*/
+	public void processTaskOnReturn(){
+	    CPU.setOnInterruptReturn(new Runnable(){
+
+		@Override
+		public void run() {
+		    processTask();
+		}	
+	    });
 	}
     }
 
