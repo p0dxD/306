@@ -18,7 +18,7 @@ public class CSCANQueue implements Queue<WorkEntry> {
 
     @Override
     public boolean offer(WorkEntry newEntry) {
-	// lock, only one item can be added at a time
+	// lock, only one item can be added/deleted at a time
 	s.P();
 	int sector = newEntry.getSectorNumber();
 	if (cscanQueue.size() == 0) {

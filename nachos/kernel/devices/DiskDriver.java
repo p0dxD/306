@@ -19,7 +19,9 @@
 package nachos.kernel.devices;
 
 import nachos.Debug;
+import nachos.Options;
 import nachos.machine.Machine;
+import nachos.util.CSCANQueue;
 import nachos.util.FIFOQueue;
 import nachos.util.Queue;
 import nachos.machine.CPU;
@@ -27,6 +29,7 @@ import nachos.machine.Disk;
 import nachos.machine.InterruptHandler;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
+import nachos.kernel.Nachos;
 import nachos.kernel.filesys.WorkEntry;
 import nachos.kernel.threads.Lock;
 
@@ -58,7 +61,7 @@ public class DiskDriver {
     private Lock lock;
 
     /**Work queue containing what to read and write*/
-    private Queue<WorkEntry> workEntries = new FIFOQueue<>();
+    private Queue<WorkEntry> workEntries;
     
     /**Spinlock for the queue*/
     private static final SpinLock mutex = new SpinLock("workqueue mutex");
@@ -75,6 +78,11 @@ public class DiskDriver {
 	lock = new Lock("synch disk lock");
 	disk = Machine.getDisk(unit);
 	disk.setHandler(new DiskIntHandler());
+	if (Nachos.options.DISK_CSCAN) 
+	    workEntries = new CSCANQueue();
+	
+	else
+	    workEntries = new FIFOQueue<>();
     }
 
     /**

@@ -197,6 +197,8 @@ public class Options {
     
     public int SCHEDULING_MODE = FCFS_SCHEDULING;
     
+    public boolean DISK_CSCAN = false;
+    
     /**How many threads to run*/
     public int THREADS_TO_RUN = 1;
     
@@ -386,7 +388,16 @@ public class Options {
 				FILESYS_STUB = false;
 				FILESYS_REAL = true;
 			    }
-			 })
+			 }),
+		new Spec("-cscan",  // set disk scheduling to a circular scan
+			new Class[] { },
+			"Usage: -cscan",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				DISK_CSCAN = true;
+			    }
+			 }),
+		
 	});
     }
     
