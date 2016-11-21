@@ -187,7 +187,6 @@ class OpenFileReal implements OpenFile {
      *			read/written.
      */
     public int writeAt(byte from[], int index, int numBytes, long position) {
-
 	int fileLength = hdr.fileLength();
 	int i, firstSector, lastSector, numSectors;
 	boolean firstAligned, lastAligned;
@@ -221,7 +220,6 @@ class OpenFileReal implements OpenFile {
 	System.arraycopy(from, index, 
 		buf, (int)position - (firstSector * diskSectorSize), 
 		numBytes);
-
 	// write modified sectors back
 	for (i = firstSector; i <= lastSector; i++)	
 	    filesystem.writeSector(hdr.byteToSector(i * diskSectorSize), 

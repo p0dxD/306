@@ -205,7 +205,11 @@ class FileSystemReal extends FileSystem {
    * @param index Offset in the buffer at which to place the data.
    */
   void readSector(int sectorNumber, byte[] data, int index) {
-      diskDriver.readSector(sectorNumber, data, index);
+//      diskDriver.readSector(sectorNumber, data, index); 
+//      System.out.println("Getting reading work");
+      diskDriver.addToQueue( new WorkEntry(sectorNumber, data, index, 'r'));
+      diskDriver.processTask();
+      
   }
   
   /**
@@ -216,7 +220,10 @@ class FileSystemReal extends FileSystem {
    * @param index Offset in the buffer from which to get the data.
    */
   void writeSector(int sectorNumber, byte[] data, int index) {
-      diskDriver.writeSector(sectorNumber, data, index);
+//      System.out.println("Getting work");
+      diskDriver.addToQueue( new WorkEntry(sectorNumber, data, index, 'w'));
+      diskDriver.processTask();
+//      diskDriver.writeSector(sectorNumber, data, index);
   }
 
   /**

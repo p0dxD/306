@@ -80,7 +80,6 @@ public class DiskDriver {
 	disk.setHandler(new DiskIntHandler());
 	if (Nachos.options.DISK_CSCAN) 
 	    workEntries = new CSCANQueue();
-	
 	else
 	    workEntries = new FIFOQueue<>();
     }
@@ -113,17 +112,18 @@ public class DiskDriver {
      */
     public void readSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-	addToQueue(new WorkEntry(sectorNumber, data, index, 'r'));
+//	addToQueue(new WorkEntry(sectorNumber, data, index, 'r'));
 	lock.acquire();			// only one disk I/O at a time
-	WorkEntry entry = getWorkEntry();
-	if(entry == null){
-	    Debug.println('F', "Queue is done with tasks.");
-	    return;
-	}
-	disk.readRequest(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
-	semaphore = entry.getSemaphore();
-	semaphore.P();			// wait for interrupt
+//	WorkEntry entry = getWorkEntry();
+//	if(entry == null){
+//	    Debug.println('F', "Queue is done with tasks.");
+//	    return;
+//	}
+	disk.readRequest(sectorNumber,data, index);
 	lock.release();
+//	semaphore = entry.getSemaphore();
+//	semaphore.P();			// wait for interrupt
+//	lock.release();
     }
 
     /**
@@ -138,30 +138,34 @@ public class DiskDriver {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
 	addToQueue(new WorkEntry(sectorNumber, data, index, 'w'));
 	lock.acquire();			// only one disk I/O at a time
-	WorkEntry entry = getWorkEntry();
-	if(entry == null){
-	    Debug.println('F', "Queue is done with tasks.");
-	    return;
-	}
-	disk.writeRequest(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
-	semaphore = entry.getSemaphore();
-	semaphore.P();			// wait for interrupt
+//	WorkEntry entry = getWorkEntry();
+//	if(entry == null){
+//	    Debug.println('F', "Queue is done with tasks.");
+//	    return;
+//	}
+	disk.writeRequest(sectorNumber,data, index);
 	lock.release();
+//	semaphore = entry.getSemaphore();
+//	semaphore.P();			// wait for interrupt
+	
     }
     
     /**Adds to current queue*/
     public void addToQueue(WorkEntry workEntry){
 	//we dissable interrups
+//	System.out.println("Adding to queue");
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 	mutex.acquire();
 	workEntries.offer(workEntry);
 	mutex.release();
 	CPU.setLevel(oldLevel);
+//	System.out.println("Done adding");
     }
     
     /**Process the requested task, read or write*/
     public WorkEntry getWorkEntry(){
 	//get the next entry to process
+
 	mutex.acquire();
 	WorkEntry  entry = workEntries.poll();
 	mutex.release();
@@ -170,22 +174,24 @@ public class DiskDriver {
 	    Debug.println('F', "Queue has no entries");
 	    return null;
 	}
+//	System.out.println("Done getting entry");
 	return entry;
     }
     
-    /**Process task on queue*/
     public void processTask(){
-	WorkEntry entry = getWorkEntry();
-	if(entry == null) return;
-	if(entry.getTaskToBeCompleted()=='r'){
-	    readSector(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
-	}else if(entry.getTaskToBeCompleted() == 'w'){
-	    writeSector(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
-	}else{
-	    Debug.println('F', "Error with task trying to be completed");
-	    return;  
-	}
-    }
+ 	WorkEntry entry = getWorkEntry();
+ 	if(entry == null) return;
+ 	if(entry.getTaskToBeCompleted()=='r'){
+ 	    readSector(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
+ 	}else if(entry.getTaskToBeCompleted() == 'w'){
+ 	    writeSector(entry.getSectorNumber(),entry.getBuffer(), entry.getIndexOffset());
+ 	}else{
+ 	    Debug.println('F', "Error with task trying to be completed");
+ 	    return;  
+ 	}
+	semaphore = entry.getSemaphore();
+	semaphore.P();			// wait for interrupt
+     }
     
     
     /**
@@ -197,7 +203,9 @@ public class DiskDriver {
 	 * the request that just finished.
 	 */
 	public void handleInterrupt() {
+//	    System.out.println("Interrupt");
 	    semaphore.V();
+//	    System.out.println("Interrupt");
 	    processTaskOnReturn();
 	}
 	

@@ -2,6 +2,7 @@ package nachos.util;
 import java.util.ArrayList;
 import nachos.kernel.filesys.WorkEntry;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 
 public class CSCANQueue implements Queue<WorkEntry> {
     
@@ -9,21 +10,27 @@ public class CSCANQueue implements Queue<WorkEntry> {
     
     private ArrayList<WorkEntry> cscanQueue;
     
-    private Semaphore s = new Semaphore("Add/Del Queue Sem", 1);
+    private SpinLock s = new SpinLock("Add/Del Queue Sem");
     
     
     public CSCANQueue () {
 	currentPos = 0;
+	cscanQueue = new ArrayList<>();
     }
 
     @Override
     public boolean offer(WorkEntry newEntry) {
+//	System.out.println("Adding to queue");
 	// lock, only one item can be added/deleted at a time
-	s.P();
+//	s.P();
+//	s.acquire();
+//	System.out.println("Adding to queue inside");
 	int sector = newEntry.getSectorNumber();
 	if (cscanQueue.size() == 0) {
 	    cscanQueue.add(newEntry);
-	    s.V();
+//	    System.out.println("returning adding size 0");
+//	    s.V();
+//	    s.release();
 	    return true;
 	}
 	// find the correct position to place in queue
@@ -33,7 +40,9 @@ public class CSCANQueue implements Queue<WorkEntry> {
 	    
 	    if(sector >= min && sector <= max) {
 		cscanQueue.add(i, newEntry);
-		s.V();
+//		s.V();
+//		s.release();
+//		System.out.println("returning adding");
 		return true;
 	    }
 	    else if (sector >= min && sector > max) {
@@ -47,7 +56,9 @@ public class CSCANQueue implements Queue<WorkEntry> {
 		// if we are at the end of the list, add to the end
 		if (i == cscanQueue.size()-1) {
 		    cscanQueue.add(newEntry);
-		    s.V();
+//		    s.V();
+//		    s.release();
+//		    System.out.println("returning adding");
 		    return true;
 		}
 		// otherwise, min = 0, and max = first sector on 'next' cycle
@@ -62,7 +73,9 @@ public class CSCANQueue implements Queue<WorkEntry> {
 		}
 	    }
 	}
-	s.V();
+//	s.V();
+//	s.release();
+//	System.out.println("returning adding");
 	return false;
     }
 
@@ -76,16 +89,21 @@ public class CSCANQueue implements Queue<WorkEntry> {
 
     @Override
     public WorkEntry poll() {
-	s.P();
+//	s.P();
+//	s.acquire();
 	if (cscanQueue.size() == 0) {
-	    s.V();
+//	    System.out.println("removing empty queue");
+//	    s.V();
+//	    s.release();
 	    return null;
 	}
 	else {
+//	    System.out.println("removing not empty queue");
 	    WorkEntry w = cscanQueue.get(0);
 	    cscanQueue.remove(0);
 	    currentPos = w.getSectorNumber();
-	    s.V();
+//	    s.V();
+//	    s.release();
 	    return w;
 	}
     }

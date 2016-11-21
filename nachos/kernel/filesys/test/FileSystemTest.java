@@ -236,7 +236,7 @@ public class FileSystemTest implements Runnable {
 			 new Class[] {String.class, String.class},
 			 "Usage: -cp <filename1> <filename2>",
 			 new Options.Action() {
-			    public void processOption(String flag, Object[] params) {
+			    public void processOption(String flag, Object[] params) {	
 				copy((String)params[0], (String)params[1]);
 			    }
 			 }),
@@ -286,7 +286,7 @@ public class FileSystemTest implements Runnable {
 			    }
 			 }),	
 			new Options.Spec
-			("-C",  // print entire filesystem
+			("-C",  // 
 				 new Class[] { String.class},
 				 null,
 				 new Options.Action() {

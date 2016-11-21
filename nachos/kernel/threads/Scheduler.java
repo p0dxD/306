@@ -277,7 +277,7 @@ public class Scheduler {
      * @param thread to check
      * @return true if its kernel, else if its user
      */
-    private boolean isKernelThread(NachosThread thread){
+    private static boolean isKernelThread(NachosThread thread){
 	//check if kernel 
 	return thread.getClass().getName().equals("nachos.machine.NachosThread");
     }
@@ -400,11 +400,11 @@ public class Scheduler {
 
 //	//	check what type of thread we have, if running in kernel leave
 //	//	else we exchange from one in kernel
-	if(!isKernelThread(currentThread)){
-	    if((((UserThread)currentThread).getMode()) == KERNEL){
-		Debug.println('A', "User is Running in kernel, continueing");
-	    }
-	}
+//	if(!isKernelThread(currentThread)){
+//	    if((((UserThread)currentThread).getMode()) == KERNEL){
+//		Debug.println('A', "User is Running in kernel, continueing");
+//	    }
+//	}
 	
 	Debug.println('t', "Next thread to run: "
 		+ (nextThread == null ? "(none)" : nextThread.name));
@@ -691,6 +691,14 @@ public class Scheduler {
 	    (new Runnable() {
 		public void run() {
 		    if(NachosThread.currentThread() != null) {
+			
+			if(!isKernelThread(NachosThread.currentThread())){
+			    if((((UserThread)NachosThread.currentThread()).getMode()) == KERNEL){
+				Debug.println('A', "User is Running in kernel, continueing");
+				return;
+			    }
+			}
+			
 			Debug.println('t', "Yielding current thread on interrupt return");
 			Nachos.scheduler.yieldThread();
 		    } else {

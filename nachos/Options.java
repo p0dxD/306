@@ -379,14 +379,19 @@ public class Options {
 			 }),
 		
 		new Spec("-fs",  // set scheduling to spn
-			new Class[] {String.class},
+			new Class[] {String.class, String.class},
 			"Usage: -fs <type>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				System.out.println("IN -fs");
 				FILESYS_TEST = true;
-				FILESYS_STUB = false;
-				FILESYS_REAL = true;
+				if(((String)params[0]).equals("real")){
+				    FILESYS_REAL = true;
+				    FILESYS_STUB = false;
+				}
+				if(((String)params[1]).equals("cscan")){
+				    DISK_CSCAN = true;
+				}
 			    }
 			 }),
 		new Spec("-cscan",  // set disk scheduling to a circular scan
