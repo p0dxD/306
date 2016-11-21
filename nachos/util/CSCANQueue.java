@@ -38,14 +38,13 @@ public class CSCANQueue implements Queue<WorkEntry> {
 	       //s.V();
 	       return true;
 	   }
-	   // if we are at the end of the list, place either right before or at end
+	   // if we are at the end of the list, place at end
 	   else if (i == cscanQueue.size()-1) {
 	       cscanQueue.add(newEntry);
 	       //s.V();
 	       return true;
 	   }
 	   // if we are not at the end of the queue, do we fit between the 2 indexes we are looking at?
-	   
 	   else if ((sector > cscanQueue.get(i).getSectorNumber() && sector <= cscanQueue.get(i+1).getSectorNumber())
 		   || (sector > cscanQueue.get(i).getSectorNumber() && cscanQueue.get(i+1).getSectorNumber() < currentPos)
 		   || (sector < cscanQueue.get(i).getSectorNumber() && sector <= cscanQueue.get(i+1).getSectorNumber() && 
@@ -54,8 +53,6 @@ public class CSCANQueue implements Queue<WorkEntry> {
 	       //s.V();
 	       return true;
 	   }
-	   System.out.println("current: " + sector);
-	   System.out.println("comparing: " + cscanQueue.get(i).getSectorNumber() +" AND "+ cscanQueue.get(i+1).getSectorNumber());
 	}
 	//s.V();
 	return false;
