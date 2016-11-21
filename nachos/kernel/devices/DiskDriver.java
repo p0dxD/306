@@ -151,7 +151,7 @@ public class DiskDriver {
     
     /**Adds to current queue*/
     public void addToQueue(WorkEntry workEntry){
-	//we dissable interrups
+	//we disable interrupts
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 	mutex.acquire();
 	workEntries.offer(workEntry);

@@ -13,7 +13,7 @@ public class FileHeaderTable {
     
     private HashMap<FileHeader, Integer> threadsWaiting = new HashMap<>();
     
-    private Semaphore openSem = new Semaphore("open file header", 1);
+    private Semaphore mutex = new Semaphore("open file header", 1);
     
 
     /** empty constructor */
@@ -23,13 +23,8 @@ public class FileHeaderTable {
     
     /** opens a particular fileheader for read or write
      * @param f  (fileheader to access)
-     * @return true if the fileheader doesn't exist and can be opened.
-     * return false if the fileheader is already open (in use)
      */
     public void openFileHeader(FileHeader f) {
-	// lock access
-	openSem.P();
-	
 	// is the fileheader already open? if so, get and wait on lock
 	if (lockMap.containsKey(f)) {
 	    int numWaiting = threadsWaiting.get(f)+1;
@@ -44,15 +39,10 @@ public class FileHeaderTable {
 	    // (no one is waiting yet)
 	    threadsWaiting.put(f, 0);
 	}
-	
-	// release
-	openSem.V();
+
     }
     
     public void closeFileHeader(FileHeader f) {
-	
-	// lock access
-	openSem.P();
 		
 	// is anyone waiting on the lock? if so, leave it open.
 	if (threadsWaiting.get(f) != 0) {
@@ -66,8 +56,6 @@ public class FileHeaderTable {
 	    threadsWaiting.remove(f);
 	}
 	
-	// release
-	openSem.V();
     }
 
 }

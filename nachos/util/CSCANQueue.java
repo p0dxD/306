@@ -58,6 +58,7 @@ public class CSCANQueue implements Queue<WorkEntry> {
 			// max to the first sector in the next cycle
 			i = j-1;
 			max = cscanQueue.get(j).getSectorNumber();
+			break;
 		    }
 		}
 	    }
