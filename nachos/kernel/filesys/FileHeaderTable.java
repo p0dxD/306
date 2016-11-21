@@ -1,12 +1,16 @@
 package nachos.kernel.filesys;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+
+import nachos.kernel.threads.Lock;
 
 public class FileHeaderTable {
     
     
-    private ArrayList<FileHeader> openHeaders;  //list of open fileheaders
+    private HashMap<FileHeader, Lock> lockMap = new HashMap<>();
     
+
     /** empty constructor */
     public FileHeaderTable() {
 	
@@ -17,23 +21,22 @@ public class FileHeaderTable {
      * @return true if the fileheader doesn't exist and can be opened.
      * return false if the fileheader is already open (in use)
      */
-    public boolean openFileHeader(FileHeader f) {
-	
-	if (openHeaders.contains(f))
-	    return false;
+    public void openFileHeader(FileHeader f) {
+	// is the fileheader already open? if so, get and wait on lock
+	if (lockMap.containsKey(f))
+	    lockMap.get(f).acquire();
+	// otherwise, make a new lock and associate it with this header
 	else {
-	    openHeaders.add(f);
-	    return true;
+	    Lock newLock = new Lock("for fileheader " + f.getDisc());
+	    lockMap.put(f, newLock);
 	}
+	
     }
     
-    public boolean closeFileHeader(FileHeader f) {
-	if (openHeaders.contains(f)) {
-	    openHeaders.remove(f);
-	    return true;
-	}
-	else
-	    return false;
+    public void closeFileHeader(FileHeader f) {
+	// is anyone waiting on the lock? if so, leave it open.
+	
+	// otherwise, close it.
     }
 
 }

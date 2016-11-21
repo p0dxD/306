@@ -223,5 +223,9 @@ class FileHeader {
 	    System.out.println();
 	}
     }
+    
+    public String getDisc() { 
+	return dataSectors[0] + " " + numBytes;
+    }
 
 }
