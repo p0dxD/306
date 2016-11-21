@@ -12,6 +12,7 @@ package nachos.kernel.filesys;
 
 import nachos.Debug;
 import nachos.kernel.devices.DiskDriver;
+import nachos.kernel.threads.Lock;
 
 /**
  * This class manages the overall operation of the file system.
@@ -117,6 +118,15 @@ class FileSystemReal extends FileSystem {
 
   /** "Root" directory -- list of file names, represented as a file. */
   private final OpenFile directoryFile;
+  
+  /** file header table */
+  private FileHeaderTable fht;
+  
+  /** fileheader (inode) lock */
+  private Lock dir = new Lock("directory lock");
+  
+  /** fileheader (inode) lock */
+  private Lock bm = new Lock("bitmap lock");
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -257,32 +267,36 @@ class FileSystemReal extends FileSystem {
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
 
+    dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
 
     if (directory.find(name) != -1)
-      success = false;			// file is already in directory
+      success = false;		// file is already in directory
     else {	
+      bm.acquire();
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
       if (sector == -1) 		
-	success = false;		// no free block for file header 
+	success = false;	// no free block for file header 
       else if (!directory.add(name, sector))
 	success = false;	// no space in directory
       else {
 	hdr = new FileHeader(this);
-	if (!hdr.allocate(freeMap, (int)initialSize))
+	if (!hdr.allocate(freeMap, (int)initialSize)) 
 	  success = false;	// no space on disk for data
 	else {	
 	  success = true;
-	  // everthing worked, flush all changes back to disk
+	  // everything worked, flush all changes back to disk
 	  hdr.writeBack(sector); 		
 	  directory.writeBack(directoryFile);
 	  freeMap.writeBack(freeMapFile);
 	}
       }
+      bm.release();
     }
+    dir.release();
     return success;
   }
 
@@ -295,6 +309,7 @@ class FileSystemReal extends FileSystem {
    * @param name The text name of the file to be opened.
    */
   public OpenFile open(String name) { 
+    dir.acquire();
     Directory directory = new Directory(NumDirEntries, this);
     OpenFile openFile = null;
     int sector;
@@ -304,6 +319,8 @@ class FileSystemReal extends FileSystem {
     sector = directory.find(name); 
     if (sector >= 0) 		
       openFile = new OpenFileReal(sector, this);// name was found in directory 
+    
+    dir.release();
     return openFile;			        // return null if not found
   }
 
@@ -325,17 +342,20 @@ class FileSystemReal extends FileSystem {
     FileHeader fileHdr;
     int sector;
     
+    dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
     sector = directory.find(name);
     if (sector == -1) {
        return false;			 // file not found 
     }
-    fileHdr = new FileHeader(this);
-    fileHdr.fetchFrom(sector);
-
+    
+    bm.acquire();
     freeMap = new BitMap(numDiskSectors);
     freeMap.fetchFrom(freeMapFile);
+    
+    fileHdr = new FileHeader(this);
+    fileHdr.fetchFrom(sector);
 
     fileHdr.deallocate(freeMap);  		// remove data blocks
     freeMap.clear(sector);			// remove header block
@@ -343,6 +363,10 @@ class FileSystemReal extends FileSystem {
 
     freeMap.writeBack(freeMapFile);		// flush to disk
     directory.writeBack(directoryFile);        // flush to disk
+    
+    // release locks
+    bm.release();
+    dir.release();
     return true;
   } 
 
