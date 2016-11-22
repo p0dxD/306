@@ -10,6 +10,8 @@
 
 package nachos.kernel.filesys;
 
+import java.util.ArrayList;
+
 import nachos.Debug;
 import nachos.kernel.devices.DiskDriver;
 import nachos.kernel.threads.Lock;
@@ -120,13 +122,13 @@ class FileSystemReal extends FileSystem {
   private final OpenFile directoryFile;
   
   /** file header table */
-  private FileHeaderTable fht;
+  public static FileHeaderTable fht = new FileHeaderTable();
   
   /** fileheader (inode) lock */
-  private Lock dir = new Lock("directory lock");
+  //private Lock dir = new Lock("directory lock");
   
   /** fileheader (inode) lock */
-  private Lock bm = new Lock("bitmap lock");
+  //private Lock bm = new Lock("bitmap lock");
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -267,14 +269,13 @@ class FileSystemReal extends FileSystem {
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
 
-    dir.acquire();
+    //dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
 
     if (directory.find(name) != -1)
       success = false;		// file is already in directory
     else {	
-      bm.acquire();
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
@@ -284,6 +285,7 @@ class FileSystemReal extends FileSystem {
 	success = false;	// no space in directory
       else {
 	hdr = new FileHeader(this);
+	fht.openFileHeader(hdr);
 	if (!hdr.allocate(freeMap, (int)initialSize)) 
 	  success = false;	// no space on disk for data
 	else {	
@@ -293,10 +295,10 @@ class FileSystemReal extends FileSystem {
 	  directory.writeBack(directoryFile);
 	  freeMap.writeBack(freeMapFile);
 	}
+	fht.closeFileHeader(hdr);
       }
-      bm.release();
     }
-    dir.release();
+    //dir.release();
     return success;
   }
 
@@ -309,7 +311,7 @@ class FileSystemReal extends FileSystem {
    * @param name The text name of the file to be opened.
    */
   public OpenFile open(String name) { 
-    dir.acquire();
+    //dir.acquire();
     Directory directory = new Directory(NumDirEntries, this);
     OpenFile openFile = null;
     int sector;
@@ -320,7 +322,7 @@ class FileSystemReal extends FileSystem {
     if (sector >= 0) 		
       openFile = new OpenFileReal(sector, this);// name was found in directory 
     
-    dir.release();
+    //dir.release();
     return openFile;			        // return null if not found
   }
 
@@ -342,7 +344,7 @@ class FileSystemReal extends FileSystem {
     FileHeader fileHdr;
     int sector;
     
-    dir.acquire();
+    //dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
     sector = directory.find(name);
@@ -350,12 +352,12 @@ class FileSystemReal extends FileSystem {
        return false;			 // file not found 
     }
     
-    bm.acquire();
     freeMap = new BitMap(numDiskSectors);
     freeMap.fetchFrom(freeMapFile);
     
     fileHdr = new FileHeader(this);
     fileHdr.fetchFrom(sector);
+    fht.openFileHeader(fileHdr);
 
     fileHdr.deallocate(freeMap);  		// remove data blocks
     freeMap.clear(sector);			// remove header block
@@ -364,9 +366,9 @@ class FileSystemReal extends FileSystem {
     freeMap.writeBack(freeMapFile);		// flush to disk
     directory.writeBack(directoryFile);        // flush to disk
     
+    fht.closeFileHeader(fileHdr);
     // release locks
-    bm.release();
-    dir.release();
+    //dir.release();
     return true;
   } 
 
@@ -409,4 +411,42 @@ class FileSystemReal extends FileSystem {
     directory.print();
 
   } 
+  
+  /** run a check on the file system and print out if errors exist,
+   * otherwise print a clear test.
+   */
+  public void fsck() {
+      // create local copies
+      FileHeader bitHdr = new FileHeader(this);
+      FileHeader dirHdr = new FileHeader(this);
+      BitMap freeMap = new BitMap(numDiskSectors);
+      Directory directory = new Directory(NumDirEntries, this);
+      
+      // grab disk info
+      bitHdr.fetchFrom(FreeMapSector);
+      dirHdr.fetchFrom(DirectorySector);
+      directory.fetchFrom(directoryFile);
+      freeMap.fetchFrom(freeMapFile);
+      
+      DirectoryEntry[] table = directory.getTable();
+    
+      int loc;  //sector we are looking at
+      String name;
+      
+      for (DirectoryEntry d : table) {
+	  if (d.inUse()) {
+	      loc = d.getSector();
+	      name = d.getName();
+	      Debug.print('+', "Directory " +name+ " stated in use: ");
+	      
+	      // check the freemaps for sector
+	      //if (freeMap.test(loc))
+	  }
+	  else {
+	      
+	  }
+      
+      }
+      
+  }
 }
