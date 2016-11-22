@@ -8,7 +8,7 @@ public class CSCANQueue implements Queue<WorkEntry> {
     
     private int currentPos;
     
-    private ArrayList<WorkEntry> cscanQueue;
+    private ArrayList<WorkEntry> cscanQueue = new ArrayList<WorkEntry>();
     
     private SpinLock s = new SpinLock("Add/Del Queue Sem");
     
@@ -22,60 +22,48 @@ public class CSCANQueue implements Queue<WorkEntry> {
     public boolean offer(WorkEntry newEntry) {
 //	System.out.println("Adding to queue");
 	// lock, only one item can be added/deleted at a time
-//	s.P();
-//	s.acquire();
-//	System.out.println("Adding to queue inside");
+
+	//s.P();
+
 	int sector = newEntry.getSectorNumber();
-	if (cscanQueue.size() == 0) {
-	    cscanQueue.add(newEntry);
-//	    System.out.println("returning adding size 0");
-//	    s.V();
-//	    s.release();
+
+	
+	// if queue is empty, or sector == currentPos, just add
+	if (cscanQueue.size() == 0 || sector == currentPos) {
+	    cscanQueue.add(0, newEntry);
+	    currentPos = sector;
+	    //s.V();
 	    return true;
 	}
+	
 	// find the correct position to place in queue
-	int min = currentPos;
-	int max = cscanQueue.get(0).getSectorNumber();;
 	for (int i=0; i < cscanQueue.size(); i++) {
-	    
-	    if(sector >= min && sector <= max) {
-		cscanQueue.add(i, newEntry);
-//		s.V();
-//		s.release();
-//		System.out.println("returning adding");
-		return true;
-	    }
-	    else if (sector >= min && sector > max) {
-		min = max;	    
-		max = cscanQueue.get(i).getSectorNumber();
-	    }
-	    else {
-		// sector is less than the current position and
-		// needs to be moved to 'next cycle'
-		
-		// if we are at the end of the list, add to the end
-		if (i == cscanQueue.size()-1) {
-		    cscanQueue.add(newEntry);
-//		    s.V();
-//		    s.release();
-//		    System.out.println("returning adding");
-		    return true;
-		}
-		// otherwise, min = 0, and max = first sector on 'next' cycle
-		min = 0;
-		for (int j=i+1; j < cscanQueue.size(); j++) {
-		    if (cscanQueue.get(j).getSectorNumber() < currentPos) {
-			// move i to position j (first of next cycle) and set 
-			// max to the first sector in the next cycle
-			i = j-1;
-			max = cscanQueue.get(j).getSectorNumber();
-		    }
-		}
-	    }
+
+	   // if sector = current list item
+	   if (sector == cscanQueue.get(i).getSectorNumber()) {
+	       cscanQueue.add(i, newEntry);
+	       //s.V();
+	       return true;
+	   }
+	   // if we are at the end of the list, place at end
+	   else if (i == cscanQueue.size()-1) {
+	       cscanQueue.add(newEntry);
+	       //s.V();
+	       return true;
+	   }
+	   // if we are not at the end of the queue, do we fit between the 2 indexes we are looking at?
+	   else if ((sector > cscanQueue.get(i).getSectorNumber() && sector <= cscanQueue.get(i+1).getSectorNumber())
+		   || (sector > cscanQueue.get(i).getSectorNumber() && cscanQueue.get(i+1).getSectorNumber() < currentPos)
+		   || (sector < cscanQueue.get(i).getSectorNumber() && sector <= cscanQueue.get(i+1).getSectorNumber() && 
+		   cscanQueue.get(i+1).getSectorNumber() < currentPos))	   {
+	       cscanQueue.add(i+1, newEntry);
+	       //s.V();
+	       return true;
+	   }
+
 	}
-//	s.V();
-//	s.release();
-//	System.out.println("returning adding");
+
+	//s.V();
 	return false;
     }
 
@@ -89,12 +77,13 @@ public class CSCANQueue implements Queue<WorkEntry> {
 
     @Override
     public WorkEntry poll() {
-//	s.P();
-//	s.acquire();
+
+	//s.P();
+
 	if (cscanQueue.size() == 0) {
-//	    System.out.println("removing empty queue");
-//	    s.V();
-//	    s.release();
+
+	    //s.V();
+
 	    return null;
 	}
 	else {
@@ -102,8 +91,9 @@ public class CSCANQueue implements Queue<WorkEntry> {
 	    WorkEntry w = cscanQueue.get(0);
 	    cscanQueue.remove(0);
 	    currentPos = w.getSectorNumber();
-//	    s.V();
-//	    s.release();
+
+	    //s.V();
+
 	    return w;
 	}
     }
