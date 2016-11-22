@@ -338,8 +338,7 @@ class FileSystemReal extends FileSystem {
     BitMap freeMap;
     FileHeader fileHdr;
     int sector;
-    
-    //dir.acquire();
+ 
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
     sector = directory.find(name);
@@ -363,7 +362,6 @@ class FileSystemReal extends FileSystem {
     
     fht.closeFileHeader(fileHdr);
     // release locks
-    //dir.release();
     return true;
   } 
 
@@ -394,19 +392,15 @@ class FileSystemReal extends FileSystem {
     Debug.print('+', "Bit map file header:\n");
     bitHdr.fetchFrom(FreeMapSector);
     bitHdr.print();
-
-    Debug.print('+', "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     
     Debug.print('+', "Directory file header:\n");
     dirHdr.fetchFrom(DirectorySector);
     dirHdr.print();
     
-    Debug.print('+', "\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
 
     freeMap.fetchFrom(freeMapFile);
     freeMap.print();
 
-    Debug.print('+', "\nzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     
     directory.fetchFrom(directoryFile);
     directory.print();
@@ -444,8 +438,6 @@ class FileSystemReal extends FileSystem {
 	      loc = d.getSector();
 	      name = d.getName();
 	      tempHdr.fetchFrom(loc);
-	      
-	      
 	      // check to see if the name already exists in the directory
 	      if (fileNames.contains(name)) {
 		  noDuplicates = false;
@@ -454,7 +446,6 @@ class FileSystemReal extends FileSystem {
 	      }
 	      else  
 		  fileNames.add(name);
-	      
 	      // check for duplicate file headers (sector points to same fileheader)
 	      if (fhs.contains(loc)) {
 		  noFHDups = false;
@@ -467,13 +458,10 @@ class FileSystemReal extends FileSystem {
 	  else {
 	      loc = d.getSector();
 	      name = d.getName();
-	      
 	      // check if its improperly labeled as not in use
 	      if (name != null)
-		  Debug.print('+', "ERROR: File " +name+ " exists, not listed in directory.");
-	      
+		  Debug.print('+', "ERROR: File " +name+ " exists, not listed in directory."); 
 	  }
-      
       }
       if (noDuplicates) 
 	  Debug.print('+', "FS Check: No duplicate names found in directory.");
