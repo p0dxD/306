@@ -193,5 +193,9 @@ class Directory {
 	    }
 	System.out.println("");
     }
+    
+    public DirectoryEntry[] getTable() {
+	return table;
+    }
 
 }

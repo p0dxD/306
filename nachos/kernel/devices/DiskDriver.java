@@ -19,7 +19,6 @@
 package nachos.kernel.devices;
 
 import nachos.Debug;
-import nachos.Options;
 import nachos.machine.Machine;
 import nachos.util.CSCANQueue;
 import nachos.util.FIFOQueue;

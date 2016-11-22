@@ -42,7 +42,6 @@ import nachos.kernel.threads.test.ThreadTest;
 import nachos.kernel.userprog.test.ExecTest;
 import nachos.kernel.userprog.test.ProgTest;
 import nachos.kernel.filesys.test.FileSystemTest;
-
 /**
  * The Nachos main class.  Nachos is "booted up" when a Java thread calls the
  * main() method of this class.
@@ -131,6 +130,8 @@ public class Nachos implements Runnable {
 	//test cases hw 1
 //	CalloutTest.start();
 //	SynchronousQueueTest.start();
+	
+	fileSystem.fsck();
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility

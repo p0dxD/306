@@ -124,11 +124,8 @@ class FileSystemReal extends FileSystem {
   /** file header table */
   public static FileHeaderTable fht = new FileHeaderTable();
   
-  /** fileheader (inode) lock */
+  /** directory lock */
   //private Lock dir = new Lock("directory lock");
-  
-  /** fileheader (inode) lock */
-  //private Lock bm = new Lock("bitmap lock");
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -400,13 +397,19 @@ class FileSystemReal extends FileSystem {
     bitHdr.fetchFrom(FreeMapSector);
     bitHdr.print();
 
+    Debug.print('+', "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+    
     Debug.print('+', "Directory file header:\n");
     dirHdr.fetchFrom(DirectorySector);
     dirHdr.print();
+    
+    Debug.print('+', "\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
 
     freeMap.fetchFrom(freeMapFile);
     freeMap.print();
 
+    Debug.print('+', "\nzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+    
     directory.fetchFrom(directoryFile);
     directory.print();
 
@@ -419,6 +422,7 @@ class FileSystemReal extends FileSystem {
       // create local copies
       FileHeader bitHdr = new FileHeader(this);
       FileHeader dirHdr = new FileHeader(this);
+      FileHeader tempHdr = new FileHeader(this);
       BitMap freeMap = new BitMap(numDiskSectors);
       Directory directory = new Directory(NumDirEntries, this);
       
@@ -429,24 +433,53 @@ class FileSystemReal extends FileSystem {
       freeMap.fetchFrom(freeMapFile);
       
       DirectoryEntry[] table = directory.getTable();
+      ArrayList<String> fileNames = new ArrayList<String>();
+      ArrayList<Integer> fhs = new ArrayList<Integer>();
     
       int loc;  //sector we are looking at
-      String name;
+      String name;   // name of file
+      boolean noDuplicates = true;
+      boolean noFHDups = true;
       
       for (DirectoryEntry d : table) {
 	  if (d.inUse()) {
 	      loc = d.getSector();
 	      name = d.getName();
-	      Debug.print('+', "Directory " +name+ " stated in use: ");
+	      tempHdr.fetchFrom(loc);
 	      
-	      // check the freemaps for sector
-	      //if (freeMap.test(loc))
+	      
+	      // check to see if the name already exists in the directory
+	      if (fileNames.contains(name)) {
+		  noDuplicates = false;
+		  Debug.print('+', "ERROR: two files with same name ("
+			  		+name+ ") reside in directory");
+	      }
+	      else  
+		  fileNames.add(name);
+	      
+	      // check for duplicate file headers (sector points to same fileheader)
+	      if (fhs.contains(loc)) {
+		  noFHDups = false;
+		  Debug.print('+', "ERROR: two files with same fileheader ("
+			  		+name+ ") reside in directory");
+	      }
+	      else  
+		  fhs.add(loc);
 	  }
 	  else {
+	      loc = d.getSector();
+	      name = d.getName();
+	      
+	      // check if its improperly labeled as not in use
+	      if (name != null)
+		  Debug.print('+', "ERROR: File " +name+ " exists, not listed in directory.");
 	      
 	  }
       
       }
-      
+      if (noDuplicates) 
+	  Debug.print('+', "FS Check: No duplicate names found in directory.");
+      if (noFHDups) 
+	  Debug.print('+', "FS Check: No duplicate fileheaders found in directory.");
   }
 }
