@@ -67,7 +67,7 @@ class OpenFileReal implements OpenFile {
     OpenFileReal(int sector, FileSystemReal filesystem) { 
 	hdr = new FileHeader(filesystem);
 	hdr.fetchFrom(sector);
-	FileSystemReal.fht.openFileHeader(hdr);
+	//FileSystemReal.fht.openFileHeader(hdr);
 	seekPosition = 0;
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
@@ -250,7 +250,7 @@ class OpenFileReal implements OpenFile {
     public int close() {
 	// If it is possible that we made changes to the FileHeader,
 	// it must be written back to the disk at this point.
-	FileSystemReal.fht.closeFileHeader(hdr);
+	//FileSystemReal.fht.closeFileHeader(hdr);
 	hdr = null;  // Ensure further access fails.	
 	return(1);
     }

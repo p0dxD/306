@@ -125,7 +125,7 @@ class FileSystemReal extends FileSystem {
   public static FileHeaderTable fht = new FileHeaderTable();
   
   /** directory lock */
-  //private Lock dir = new Lock("directory lock");
+  private Lock dir = new Lock("directory lock");
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -266,13 +266,16 @@ class FileSystemReal extends FileSystem {
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
 
-    //dir.acquire();
+    dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
 
-    if (directory.find(name) != -1)
+    if (directory.find(name) != -1) {
       success = false;		// file is already in directory
+      dir.release();
+    }
     else {	
+	dir.release();
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
@@ -282,7 +285,6 @@ class FileSystemReal extends FileSystem {
 	success = false;	// no space in directory
       else {
 	hdr = new FileHeader(this);
-	fht.openFileHeader(hdr);
 	if (!hdr.allocate(freeMap, (int)initialSize)) 
 	  success = false;	// no space on disk for data
 	else {	
@@ -292,10 +294,8 @@ class FileSystemReal extends FileSystem {
 	  directory.writeBack(directoryFile);
 	  freeMap.writeBack(freeMapFile);
 	}
-	fht.closeFileHeader(hdr);
       }
     }
-    //dir.release();
     return success;
   }
 
@@ -308,7 +308,6 @@ class FileSystemReal extends FileSystem {
    * @param name The text name of the file to be opened.
    */
   public OpenFile open(String name) { 
-    //dir.acquire();
     Directory directory = new Directory(NumDirEntries, this);
     OpenFile openFile = null;
     int sector;
@@ -319,7 +318,6 @@ class FileSystemReal extends FileSystem {
     if (sector >= 0) 		
       openFile = new OpenFileReal(sector, this);// name was found in directory 
     
-    //dir.release();
     return openFile;			        // return null if not found
   }
 
