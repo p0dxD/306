@@ -13,6 +13,7 @@ package nachos.kernel.filesys;
 import nachos.Debug;
 import nachos.kernel.devices.DiskDriver;
 import nachos.kernel.threads.Lock;
+import nachos.kernel.threads.SpinLock;
 
 /**
  * This class manages the overall operation of the file system.
@@ -123,8 +124,10 @@ class FileSystemReal extends FileSystem {
   public static FileHeaderTable fht = new FileHeaderTable();
   
   /** fileheader (inode) lock */
-  private Lock dir = new Lock("directory lock");
- 
+  private SpinLock dir = new SpinLock("directory lock");
+  
+  /** fileheader (inode) lock */
+  private SpinLock bm = new SpinLock("bitmap lock");
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -276,9 +279,9 @@ class FileSystemReal extends FileSystem {
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
 
-    if (directory.find(name) != -1) {
-	dir.release();
-        success = false;		// file is already in directory
+    if (directory.find(name) != -1){
+      success = false;		// file is already in directory
+      dir.release();
     }
     else {	
       dir.release();
@@ -326,6 +329,7 @@ class FileSystemReal extends FileSystem {
       openFile = new OpenFileReal(sector, this);// name was found in directory 
     
     dir.release();
+    System.out.println("LOCK released " + sector);
     return openFile;			        // return null if not found
   }
 
@@ -355,6 +359,7 @@ class FileSystemReal extends FileSystem {
        return false;			 // file not found 
     }
     
+    bm.acquire();
     freeMap = new BitMap(numDiskSectors);
     freeMap.fetchFrom(freeMapFile);
     
@@ -369,6 +374,7 @@ class FileSystemReal extends FileSystem {
     directory.writeBack(directoryFile);        // flush to disk
     
     // release locks
+    bm.release();
     dir.release();
     return true;
   } 
