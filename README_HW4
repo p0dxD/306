@@ -9,7 +9,6 @@ Flags usage:
 	-fs <real|stub> <cscan|fifo>
 	
 	//this is optional for testing creating files
-	also added option to create file
 	-C <file name> size
 	
 	Test file is HwFourTest.java under nachos.kernel.filesys.test

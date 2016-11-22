@@ -19,6 +19,8 @@ import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.filesys.test.HwFourTest.CopyTest;
+import nachos.kernel.threads.Callout;
 
 /**
  * This class implements some simple test routines for the file system.
@@ -293,6 +295,19 @@ public class FileSystemTest implements Runnable {
 				    public void processOption(String flag, Object[] params) {
 					Nachos.fileSystem.create((String)params[0], 20);
 				    }
+				 }),
+			new Options.Spec
+			("-HW4T",  // 
+				 new Class[] {},
+				 null,
+				 new Options.Action() {
+				    public void processOption(String flag, Object[] params) {
+					System.out.println("In here");
+					NachosThread thread = new NachosThread("hw4 test one",  new HwFourTest("one"));
+					Nachos.scheduler.readyToRun(thread);
+					NachosThread thread2 = new NachosThread("hw4 test one",  new HwFourTest("two"));
+					Nachos.scheduler.readyToRun(thread2);
+				    }
 				 })
 	 });
 	Nachos.scheduler.finishThread();
@@ -305,4 +320,65 @@ public class FileSystemTest implements Runnable {
 	NachosThread thread = new NachosThread("Filesystem test", new FileSystemTest());
 	Nachos.scheduler.readyToRun(thread);
     }
+    
+    
+    public class HwFourTest implements Runnable{
+	    private String name;
+	    
+	    public HwFourTest(String name){
+		this.name = name;
+	    }
+		@Override
+		public void run() {
+		    // TODO Auto-generated method stub
+		    
+		    NachosThread thread = new NachosThread("hw4 test one",  new Runnable(){
+
+			@Override
+			public void run() {
+			    // TODO Auto-generated method stub
+			    new CopyTest("test/shell","test").run();
+			    Nachos.scheduler.finishThread();
+			}
+			
+		    });
+		    
+		    NachosThread thread2 = new NachosThread("hw4 test one",  new Runnable(){
+
+			@Override
+			public void run() {
+			    // TODO Auto-generated method stub
+			    new CopyTest("test/exec1","test1").run();
+			    Nachos.scheduler.finishThread();
+			}
+			
+		    });
+		    if(name.equals("one"))
+			Nachos.scheduler.readyToRun(thread);
+		    else
+		    	Nachos.scheduler.readyToRun(thread2);
+		    Nachos.scheduler.finishThread();
+		}
+		
+		    
+		    class CopyTest implements Runnable{
+			private String from;
+			private String to;
+			
+			public CopyTest(String from ,String to){
+			   this.from = from;
+			   this.to= to;
+			}
+			
+			@Override
+			public void run() {
+			    Debug.println('F', "Copying "+ from +" to "+ to);
+			    copy(from,to);
+			    
+			}
+			
+		    }
+		   
+		
+	}  
 }

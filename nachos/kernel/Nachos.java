@@ -42,6 +42,7 @@ import nachos.kernel.threads.test.ThreadTest;
 import nachos.kernel.userprog.test.ExecTest;
 import nachos.kernel.userprog.test.ProgTest;
 import nachos.kernel.filesys.test.FileSystemTest;
+import nachos.kernel.filesys.test.HwFourTest;
 
 /**
  * The Nachos main class.  Nachos is "booted up" when a Java thread calls the
@@ -124,7 +125,8 @@ public class Nachos implements Runnable {
 	    NetworkTest.start();
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
-//	if(options.HW4_TEST)
+	if(options.HW4_TEST)
+	    HwFourTest.start();
 	    
 //	
 //	Debug.println('S', "Running HW 2 TEST");
