@@ -120,13 +120,11 @@ class FileSystemReal extends FileSystem {
   private final OpenFile directoryFile;
   
   /** file header table */
-  private FileHeaderTable fht;
+  public static FileHeaderTable fht = new FileHeaderTable();
   
   /** fileheader (inode) lock */
   private Lock dir = new Lock("directory lock");
-  
-  /** fileheader (inode) lock */
-  private Lock bm = new Lock("bitmap lock");
+ 
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -278,10 +276,12 @@ class FileSystemReal extends FileSystem {
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
 
-    if (directory.find(name) != -1)
-      success = false;		// file is already in directory
+    if (directory.find(name) != -1) {
+	dir.release();
+        success = false;		// file is already in directory
+    }
     else {	
-      bm.acquire();
+      dir.release();
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
@@ -301,9 +301,7 @@ class FileSystemReal extends FileSystem {
 	  freeMap.writeBack(freeMapFile);
 	}
       }
-      bm.release();
     }
-    dir.release();
     return success;
   }
 
@@ -357,7 +355,6 @@ class FileSystemReal extends FileSystem {
        return false;			 // file not found 
     }
     
-    bm.acquire();
     freeMap = new BitMap(numDiskSectors);
     freeMap.fetchFrom(freeMapFile);
     
@@ -372,7 +369,6 @@ class FileSystemReal extends FileSystem {
     directory.writeBack(directoryFile);        // flush to disk
     
     // release locks
-    bm.release();
     dir.release();
     return true;
   } 
