@@ -1,16 +1,12 @@
 package nachos.util;
 import java.util.ArrayList;
 import nachos.kernel.filesys.WorkEntry;
-import nachos.kernel.threads.Semaphore;
-import nachos.kernel.threads.SpinLock;
 
 public class CSCANQueue implements Queue<WorkEntry> {
     
     private int currentPos;
     
     private ArrayList<WorkEntry> cscanQueue = new ArrayList<WorkEntry>();
-    
-    private SpinLock s = new SpinLock("Add/Del Queue Sem");
     
     
     public CSCANQueue () {
@@ -20,10 +16,6 @@ public class CSCANQueue implements Queue<WorkEntry> {
 
     @Override
     public boolean offer(WorkEntry newEntry) {
-//	System.out.println("Adding to queue");
-	// lock, only one item can be added/deleted at a time
-
-	//s.P();
 
 	int sector = newEntry.getSectorNumber();
 
@@ -32,7 +24,6 @@ public class CSCANQueue implements Queue<WorkEntry> {
 	if (cscanQueue.size() == 0 || sector == currentPos) {
 	    cscanQueue.add(0, newEntry);
 	    currentPos = sector;
-	    //s.V();
 	    return true;
 	}
 	
@@ -42,13 +33,11 @@ public class CSCANQueue implements Queue<WorkEntry> {
 	   // if sector = current list item
 	   if (sector == cscanQueue.get(i).getSectorNumber()) {
 	       cscanQueue.add(i, newEntry);
-	       //s.V();
 	       return true;
 	   }
 	   // if we are at the end of the list, place at end
 	   else if (i == cscanQueue.size()-1) {
 	       cscanQueue.add(newEntry);
-	       //s.V();
 	       return true;
 	   }
 	   // if we are not at the end of the queue, do we fit between the 2 indexes we are looking at?
@@ -57,13 +46,10 @@ public class CSCANQueue implements Queue<WorkEntry> {
 		   || (sector < cscanQueue.get(i).getSectorNumber() && sector <= cscanQueue.get(i+1).getSectorNumber() && 
 		   cscanQueue.get(i+1).getSectorNumber() < currentPos))	   {
 	       cscanQueue.add(i+1, newEntry);
-	       //s.V();
 	       return true;
 	   }
 
 	}
-
-	//s.V();
 	return false;
     }
 
@@ -77,23 +63,13 @@ public class CSCANQueue implements Queue<WorkEntry> {
 
     @Override
     public WorkEntry poll() {
-
-	//s.P();
-
 	if (cscanQueue.size() == 0) {
-
-	    //s.V();
-
 	    return null;
 	}
 	else {
-//	    System.out.println("removing not empty queue");
 	    WorkEntry w = cscanQueue.get(0);
 	    cscanQueue.remove(0);
 	    currentPos = w.getSectorNumber();
-
-	    //s.V();
-
 	    return w;
 	}
     }

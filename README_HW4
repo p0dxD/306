@@ -1,0 +1,21 @@
+Jose Rodriguez 107927299
+Kathryn Blecher 108871623
+
+HW 4
+
+Flags usage:
+	//to start the file system use tthe following flags
+	//it must have an argument of one of each type
+	-fs <real|stub> <cscan|fifo>
+	
+	//this is optional for testing creating files
+	also added option to create file
+	-C <file name> size
+	
+	Test file is HwFourTest.java under nachos.kernel.filesys.test
+	this file makes a call to FileSystemTest multiple times copying
+	multiple files at the same time to test the functionality of write
+	and read from multiple concurrent threads. 
+	the flag to enable this file is -hw4
+	
+	

@@ -199,6 +199,8 @@ public class Options {
     
     public boolean DISK_CSCAN = false;
     
+    public boolean HW4_TEST = false;
+    
     /**How many threads to run*/
     public int THREADS_TO_RUN = 1;
     
@@ -400,6 +402,14 @@ public class Options {
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
 				DISK_CSCAN = true;
+			    }
+			 }),
+		new Spec("-hw4",  // set disk scheduling to a circular scan
+			new Class[] { },
+			"Usage: -hw4",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				HW4_TEST = true;
 			    }
 			 }),
 		

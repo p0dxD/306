@@ -19,7 +19,6 @@
 package nachos.kernel.devices;
 
 import nachos.Debug;
-import nachos.Options;
 import nachos.machine.Machine;
 import nachos.util.CSCANQueue;
 import nachos.util.FIFOQueue;
@@ -27,7 +26,6 @@ import nachos.util.Queue;
 import nachos.machine.CPU;
 import nachos.machine.Disk;
 import nachos.machine.InterruptHandler;
-import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.WorkEntry;
@@ -55,7 +53,7 @@ public class DiskDriver {
     private Disk disk;
 
     /** To synchronize requesting thread with the interrupt handler. */
-    private Semaphore semaphore;
+    private WorkEntry currentEntry;
 
     /** Only one read/write request can be sent to the disk at a time. */
     private Lock lock;
@@ -65,8 +63,7 @@ public class DiskDriver {
     
     /**Spinlock for the queue*/
     private static final SpinLock mutex = new SpinLock("workqueue mutex");
-    
-    
+
     /**
      * Initialize the synchronous interface to the physical disk, in turn
      * initializing the physical disk.
@@ -74,7 +71,7 @@ public class DiskDriver {
      * @param unit  The disk unit to be handled by this driver.
      */
     public DiskDriver(int unit) {
-	semaphore = new Semaphore("synch disk", 0);
+//	semaphore = new Semaphore("synch disk", 0);
 	lock = new Lock("synch disk lock");
 	disk = Machine.getDisk(unit);
 	disk.setHandler(new DiskIntHandler());
@@ -112,18 +109,9 @@ public class DiskDriver {
      */
     public void readSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-//	addToQueue(new WorkEntry(sectorNumber, data, index, 'r'));
 	lock.acquire();			// only one disk I/O at a time
-//	WorkEntry entry = getWorkEntry();
-//	if(entry == null){
-//	    Debug.println('F', "Queue is done with tasks.");
-//	    return;
-//	}
 	disk.readRequest(sectorNumber,data, index);
 	lock.release();
-//	semaphore = entry.getSemaphore();
-//	semaphore.P();			// wait for interrupt
-//	lock.release();
     }
 
     /**
@@ -136,36 +124,22 @@ public class DiskDriver {
      */
     public void writeSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-	addToQueue(new WorkEntry(sectorNumber, data, index, 'w'));
 	lock.acquire();			// only one disk I/O at a time
-//	WorkEntry entry = getWorkEntry();
-//	if(entry == null){
-//	    Debug.println('F', "Queue is done with tasks.");
-//	    return;
-//	}
 	disk.writeRequest(sectorNumber,data, index);
 	lock.release();
-//	semaphore = entry.getSemaphore();
-//	semaphore.P();			// wait for interrupt
-	
     }
     
     /**Adds to current queue*/
     public void addToQueue(WorkEntry workEntry){
-
 	//we disable interrupts
-	int oldLevel = CPU.setLevel(CPU.IntOff);
 	mutex.acquire();
 	workEntries.offer(workEntry);
 	mutex.release();
-	CPU.setLevel(oldLevel);
-//	System.out.println("Done adding");
     }
     
     /**Process the requested task, read or write*/
     public WorkEntry getWorkEntry(){
 	//get the next entry to process
-
 	mutex.acquire();
 	WorkEntry  entry = workEntries.poll();
 	mutex.release();
@@ -174,10 +148,10 @@ public class DiskDriver {
 	    Debug.println('F', "Queue has no entries");
 	    return null;
 	}
-//	System.out.println("Done getting entry");
 	return entry;
     }
     
+    /**Process a current task on queue*/
     public void processTask(){
  	WorkEntry entry = getWorkEntry();
  	if(entry == null) return;
@@ -189,11 +163,10 @@ public class DiskDriver {
  	    Debug.println('F', "Error with task trying to be completed");
  	    return;  
  	}
-	semaphore = entry.getSemaphore();
-	semaphore.P();			// wait for interrupt
+	currentEntry = entry;
+	entry.getSemaphore().P();
      }
-    
-    
+
     /**
      * DiskDriver interrupt handler class.
      */
@@ -203,9 +176,7 @@ public class DiskDriver {
 	 * the request that just finished.
 	 */
 	public void handleInterrupt() {
-//	    System.out.println("Interrupt");
-	    semaphore.V();
-//	    System.out.println("Interrupt");
+	    currentEntry.getSemaphore().V();
 	    processTaskOnReturn();
 	}
 	
