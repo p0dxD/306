@@ -11,10 +11,24 @@ Flags usage:
 	//this is optional for testing creating files
 	-C <file name> size
 	
-	Test file is HwFourTest.java under nachos.kernel.filesys.test
-	this file makes a call to FileSystemTest multiple times copying
-	multiple files at the same time to test the functionality of write
-	and read from multiple concurrent threads. 
-	the flag to enable this file is -hw4
+Test conditions have been added under FileSystemTest
+these require the following flag
+	the flag to enable this file is -HW4T
+	it contains an inner class with runnables that call copy several type
+	at different occasions to test accessing readSector and Write sector from
+	different areas.
 	
+
+example of running parameters: -d Ff  -f -fs real fifo -ncpu 5  -HW4T
+this will format the drive and create 7 files using fifo and the real file nachos system
+this can be manipulated with the above testing flags to create different outputs
+-d Ff  -fs real fifo -ncpu 5  -x testone
+this example test that the shell was put out after running the above flags
+
+
+Implementation of DiskDriver contains a queue that keeps all the tasks, the interrupt
+calls a semaphore which frees the current waiting WorkTask and gets the next one and immediaty
+dispaches if no other thread has called the current disk to perform a task
+
+
 	

@@ -218,8 +218,6 @@ class FileSystemReal extends FileSystem {
    * @param index Offset in the buffer at which to place the data.
    */
   void readSector(int sectorNumber, byte[] data, int index) {
-//      diskDriver.readSector(sectorNumber, data, index); 
-//      System.out.println("Getting reading work");
       diskDriver.addToQueue( new WorkEntry(sectorNumber, data, index, 'r'));
       diskDriver.processTask();
       
@@ -233,10 +231,8 @@ class FileSystemReal extends FileSystem {
    * @param index Offset in the buffer from which to get the data.
    */
   void writeSector(int sectorNumber, byte[] data, int index) {
-//      System.out.println("Getting work");
       diskDriver.addToQueue( new WorkEntry(sectorNumber, data, index, 'w'));
       diskDriver.processTask();
-//      diskDriver.writeSector(sectorNumber, data, index);
   }
 
   /**
@@ -276,20 +272,17 @@ class FileSystemReal extends FileSystem {
 
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
-    //System.out.println("\n\n\n\nwaiting here\n\n\n\n");
     dir.acquire();
     
     directory = new Directory(NumDirEntries, this);
-    //System.out.println("here waiting out of fetcg");
     
     directory.fetchFrom(directoryFile);
     
     if (directory.find(name) != -1){
-	//System.out.println("\n\n\n\not waiting here\n\n\n\n");
       success = false;		// file is already in directory
     }
     else {
-      //System.out.println("\n\n\n\not waiting here\n\n\n\n");
+
       bm.acquire();
       //System.out.println("\n\n\n\not waiting here\n\n\n\n");
       freeMap = new BitMap(numDiskSectors);
@@ -301,7 +294,7 @@ class FileSystemReal extends FileSystem {
 	success = false;	// no space in directory
       else {
 	hdr = new FileHeader(this);
-	//fht.openFileHeader(hdr);
+	fht.openFileHeader(hdr);
 	if (!hdr.allocate(freeMap, (int)initialSize))  {
 	  success = false;	// no space on disk for data
 	}
@@ -312,7 +305,7 @@ class FileSystemReal extends FileSystem {
 	  directory.writeBack(directoryFile);
 	  freeMap.writeBack(freeMapFile);
 	}
-	//fht.closeFileHeader(hdr);
+	fht.closeFileHeader(hdr);
       }
       bm.release();
     }
@@ -380,7 +373,7 @@ class FileSystemReal extends FileSystem {
     FileHeader temp = new FileHeader(this);
     temp.fetchFrom(sector);
     
-    //fht.openFileHeader(temp);
+    fht.openFileHeader(temp);
 
     fileHdr.deallocate(freeMap);  		// remove data blocks
     freeMap.clear(sector);			// remove header block
@@ -390,7 +383,7 @@ class FileSystemReal extends FileSystem {
     directory.writeBack(directoryFile);        // flush to disk
     
     // release locks
-    //fht.closeFileHeader(temp);
+    fht.closeFileHeader(temp);
     bm.release();
     dir.release();
     return true;

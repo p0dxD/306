@@ -110,10 +110,8 @@ public class DiskDriver {
      */
     public void readSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-//	System.out.println("HRERERERE");
 	disk.readRequest(sectorNumber,data, index);
-//	System.out.println("DONE READING");
-	//	lock.release();
+
     }
 
     /**
@@ -134,11 +132,9 @@ public class DiskDriver {
     /**Adds to current queue*/
     public void addToQueue(WorkEntry workEntry){
 	int oldLevel = CPU.setLevel(CPU.IntOff);
-	System.out.println("GETTING 1");
 	mutex.acquire();
 	workEntries.offer(workEntry);
 	mutex.release();
-	System.out.println("RELEASING 1");
 	CPU.setLevel(oldLevel);
     }
 
@@ -147,14 +143,12 @@ public class DiskDriver {
 	//get the next entry to process
 	
 	int oldLevel = CPU.setLevel(CPU.IntOff);
-	System.out.println("GETTING 2");
 	mutex.acquire();
 	entryM.acquire();
 	
 	currentEntry = workEntries.poll();
 	entryM.release();
 	mutex.release();
-	System.out.println("RELEASING 2");
 	CPU.setLevel(oldLevel);
     }
 
@@ -168,12 +162,12 @@ public class DiskDriver {
 
 	    if(currentEntry == null) return;
 	    if(currentEntry.getTaskToBeCompleted()=='r'){
-		System.out.println("getting entry HERE");
+
 		readSector(currentEntry.getSectorNumber(),currentEntry.getBuffer(), currentEntry.getIndexOffset());
-		System.out.println("HOLDING HERE");
+
 		currentEntry.getSemaphore().P();
 		setCurrentEntryToNull();
-		System.out.println("HOLDING HERE NOT");
+
 
 	    }else if(currentEntry.getTaskToBeCompleted() == 'w'){
 		writeSector(currentEntry.getSectorNumber(),currentEntry.getBuffer(), currentEntry.getIndexOffset());
@@ -209,14 +203,11 @@ public class DiskDriver {
 	    currentEntry.getSemaphore().V();
 	    
 	    if(currentEntry == null){
-	    System.out.println("inside");
-	    System.out.println("GETTING 3");
 	    mutex.acquire();
 	    entryM.acquire();
 	    currentEntry = workEntries.poll();
 	    entryM.release();
 	    mutex.release();
-	    System.out.println("RELEASING 3");
 	    if(currentEntry == null) return;
 	    if(currentEntry.getTaskToBeCompleted() == 'r'){
 		readSector(currentEntry.getSectorNumber(), currentEntry.getBuffer(),currentEntry.getIndexOffset());
@@ -226,7 +217,6 @@ public class DiskDriver {
 		processTaskOnReturn();
 	    }
 	    }else{
-		Debug.println('F', "Waiting");
 		return;
 	    }
 
@@ -237,7 +227,6 @@ public class DiskDriver {
 
 		@Override
 		public void run() {
-		    System.out.println("on return ");
 			currentEntry.getSemaphore().P();
 			setCurrentEntryToNull();
 		}	

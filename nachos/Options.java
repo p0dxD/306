@@ -388,7 +388,7 @@ public class Options {
 			"Usage: -fs <type>",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
-				System.out.println("IN -fs");
+				
 				FILESYS_TEST = true;
 				if(((String)params[0]).equals("real")){
 				    FILESYS_REAL = true;
