@@ -128,6 +128,8 @@ public class Nachos implements Runnable {
 	    ConsoleTest.start();
 	if(options.HW4_TEST)
 	    HwFourTest.start();
+	if(options.FSCK) 
+	    fileSystem.fsck();
 	    
 //	
 //	Debug.println('S', "Running HW 2 TEST");
@@ -136,8 +138,6 @@ public class Nachos implements Runnable {
 	//test cases hw 1
 //	CalloutTest.start();
 //	SynchronousQueueTest.start();
-	
-	fileSystem.fsck();
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility

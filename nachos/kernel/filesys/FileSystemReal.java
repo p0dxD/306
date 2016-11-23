@@ -123,7 +123,7 @@ class FileSystemReal extends FileSystem {
   private final OpenFile directoryFile;
   
   /** file header table */
-  private FileHeaderTable fht = new FileHeaderTable();
+  public static FileHeaderTable fht = new FileHeaderTable();
   
   /** fileheader (inode) lock */
   private SpinLock dir = new SpinLock("directory lock");
@@ -360,7 +360,7 @@ class FileSystemReal extends FileSystem {
     FileHeader fileHdr;
     int sector;
     
-    dir.acquire();
+    //dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
     sector = directory.find(name);
@@ -374,6 +374,10 @@ class FileSystemReal extends FileSystem {
     
     fileHdr = new FileHeader(this);
     fileHdr.fetchFrom(sector);
+    FileHeader temp = new FileHeader(this);
+    temp.fetchFrom(sector);
+    
+    //fht.openFileHeader(temp);
 
     fileHdr.deallocate(freeMap);  		// remove data blocks
     freeMap.clear(sector);			// remove header block
@@ -383,6 +387,7 @@ class FileSystemReal extends FileSystem {
     directory.writeBack(directoryFile);        // flush to disk
     
     // release locks
+    //fht.closeFileHeader(temp);
     bm.release();
     dir.release();
     return true;

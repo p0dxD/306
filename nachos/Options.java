@@ -182,6 +182,9 @@ public class Options {
     /** Should we run the network test? */
     public boolean NETWORK_TEST = false;
     
+    /** FSCK */
+    public boolean FSCK = false;
+    
     /** Mode for CPU Scheduling */
     public int SPN_SCHEDULING = 2;
     
@@ -396,12 +399,12 @@ public class Options {
 				}
 			    }
 			 }),
-		new Spec("-cscan",  // set disk scheduling to a circular scan
+		new Spec("-cscan",  // turn on fs check
 			new Class[] { },
-			"Usage: -cscan",
+			"Usage: -fsck",
 			 new Options.Action() {
 			    public void processOption(String flag, Object[] params) {
-				DISK_CSCAN = true;
+				FSCK = true;
 			    }
 			 }),
 		new Spec("-hw4",  // set disk scheduling to a circular scan
