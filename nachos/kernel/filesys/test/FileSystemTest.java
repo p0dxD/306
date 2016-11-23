@@ -302,7 +302,7 @@ public class FileSystemTest implements Runnable {
 				 null,
 				 new Options.Action() {
 				    public void processOption(String flag, Object[] params) {
-					System.out.println("In here");
+					//System.out.println("In here");
 					NachosThread thread = new NachosThread("hw4 test one",  new HwFourTest("one"));
 					Nachos.scheduler.readyToRun(thread);
 					NachosThread thread2 = new NachosThread("hw4 test one",  new HwFourTest("two"));

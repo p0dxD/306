@@ -125,10 +125,10 @@ class FileSystemReal extends FileSystem {
   /** file header table */
   public static FileHeaderTable fht = new FileHeaderTable();
   
-  /** fileheader (inode) lock */
+  /** file header (directory) lock */
   private SpinLock dir = new SpinLock("directory lock");
   
-  /** fileheader (inode) lock */
+  /** file header (bm) lock */
   private SpinLock bm = new SpinLock("bitmap lock");
 
   /**
@@ -276,22 +276,22 @@ class FileSystemReal extends FileSystem {
 
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
-    System.out.println("\n\n\n\nwaiting here\n\n\n\n");
+    //System.out.println("\n\n\n\nwaiting here\n\n\n\n");
     dir.acquire();
     
     directory = new Directory(NumDirEntries, this);
-    System.out.println("here waiting out of fetcg");
+    //System.out.println("here waiting out of fetcg");
     
     directory.fetchFrom(directoryFile);
     
     if (directory.find(name) != -1){
-	System.out.println("\n\n\n\not waiting here\n\n\n\n");
+	//System.out.println("\n\n\n\not waiting here\n\n\n\n");
       success = false;		// file is already in directory
     }
     else {
-	System.out.println("\n\n\n\not waiting here\n\n\n\n");
+      //System.out.println("\n\n\n\not waiting here\n\n\n\n");
       bm.acquire();
-//      System.out.println("\n\n\n\not waiting here\n\n\n\n");
+      //System.out.println("\n\n\n\not waiting here\n\n\n\n");
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
@@ -301,8 +301,10 @@ class FileSystemReal extends FileSystem {
 	success = false;	// no space in directory
       else {
 	hdr = new FileHeader(this);
-	if (!hdr.allocate(freeMap, (int)initialSize)) 
+	//fht.openFileHeader(hdr);
+	if (!hdr.allocate(freeMap, (int)initialSize))  {
 	  success = false;	// no space on disk for data
+	}
 	else {	
 	  success = true;
 	  // everything worked, flush all changes back to disk
@@ -310,6 +312,7 @@ class FileSystemReal extends FileSystem {
 	  directory.writeBack(directoryFile);
 	  freeMap.writeBack(freeMapFile);
 	}
+	//fht.closeFileHeader(hdr);
       }
       bm.release();
     }
@@ -326,7 +329,7 @@ class FileSystemReal extends FileSystem {
    * @param name The text name of the file to be opened.
    */
   public OpenFile open(String name) { 
-    dir.acquire();
+   dir.acquire();
     Directory directory = new Directory(NumDirEntries, this);
     OpenFile openFile = null;
     int sector;
@@ -360,7 +363,7 @@ class FileSystemReal extends FileSystem {
     FileHeader fileHdr;
     int sector;
     
-    //dir.acquire();
+    dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
     sector = directory.find(name);

@@ -38,6 +38,7 @@ public class FileHeaderTable {
 	    // also, add to hashmap threadsWaiting, with initial value 0
 	    // (no one is waiting yet)
 	    threadsWaiting.put(f, 0);
+	    //newLock.acquire();
 	}
 
     }
@@ -52,6 +53,7 @@ public class FileHeaderTable {
 	}
 	// otherwise, close it.
 	else {
+	    //lockMap.get(f).release();
 	    lockMap.remove(f);
 	    threadsWaiting.remove(f);
 	}
