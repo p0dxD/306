@@ -63,6 +63,7 @@ public class DiskDriver {
 
     /**Spinlock for the queue*/
     private static final SpinLock mutex = new SpinLock("workqueue mutex");
+    private static final SpinLock entryM = new SpinLock("workqueue mutex");
 
     /**
      * Initialize the synchronous interface to the physical disk, in turn
@@ -109,17 +110,9 @@ public class DiskDriver {
      */
     public void readSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-	//	lock.acquire();			// only one disk I/O at a time
-	//if current work is empty then do this else
-	//we have to wait for interrupt access
-	//	if(currentEntry == null)
+	System.out.println("HRERERERE");
 	disk.readRequest(sectorNumber,data, index);
-	//	else{
-	//	    addToQueue(new WorkEntry(sectorNumber, data, index, 'r'));
-	//	}
-	//	currentEntry = entry;
-	currentEntry.getSemaphore().P();
-	currentEntry = null;
+	System.out.println("DONE READING");
 	//	lock.release();
     }
 
@@ -135,8 +128,6 @@ public class DiskDriver {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
 	//	lock.acquire();			// only one disk I/O at a time
 	disk.writeRequest(sectorNumber,data, index);
-	currentEntry.getSemaphore().P();
-	currentEntry = null;
 	//	lock.release();
     }
 
@@ -152,24 +143,38 @@ public class DiskDriver {
     /**Process the requested task, read or write*/
     public void getWorkEntry(){
 	//get the next entry to process
+	
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 	mutex.acquire();
+	entryM.acquire();
+	
 	currentEntry = workEntries.poll();
+	entryM.release();
 	mutex.release();	
 	CPU.setLevel(oldLevel);
     }
 
     /**Process a current task on queue*/
     public void processTask(){
-
+	
 	if(currentEntry == null){
 	    getWorkEntry();
-	    // 	currentEntry = entry;
+
+
+
 	    if(currentEntry == null) return;
 	    if(currentEntry.getTaskToBeCompleted()=='r'){
+		System.out.println("getting entry HERE");
 		readSector(currentEntry.getSectorNumber(),currentEntry.getBuffer(), currentEntry.getIndexOffset());
+		System.out.println("HOLDING HERE");
+		currentEntry.getSemaphore().P();
+		setCurrentEntryToNull();
+		System.out.println("HOLDING HERE NOT");
+
 	    }else if(currentEntry.getTaskToBeCompleted() == 'w'){
 		writeSector(currentEntry.getSectorNumber(),currentEntry.getBuffer(), currentEntry.getIndexOffset());
+		currentEntry.getSemaphore().P();
+		setCurrentEntryToNull();
 	    }else{
 		Debug.println('F', "Error with task trying to be completed");
 		return;  
@@ -181,6 +186,13 @@ public class DiskDriver {
 
     }
 
+    public void setCurrentEntryToNull(){
+	int oldLevel = CPU.setLevel(CPU.IntOff);
+	entryM.acquire();
+	currentEntry = null;
+	entryM.release();
+	CPU.setLevel(oldLevel);
+    }
     /**
      * DiskDriver interrupt handler class.
      */
@@ -191,24 +203,42 @@ public class DiskDriver {
 	 */
 	public void handleInterrupt() {
 	    currentEntry.getSemaphore().V();
-
+	    System.out.println("RELEASING");
 	    if(currentEntry == null){
 		System.out.println("inside");
 	    mutex.acquire();
+	    entryM.acquire();
 	    currentEntry = workEntries.poll();
+	    entryM.release();
 	    mutex.release();
 	    
 	    if(currentEntry == null) return;
-	    if(currentEntry.getTaskToBeCompleted() == 'r')
+	    if(currentEntry.getTaskToBeCompleted() == 'r'){
 		readSector(currentEntry.getSectorNumber(), currentEntry.getBuffer(),currentEntry.getIndexOffset());
-	    else
+		processTaskOnReturn();
+	    }else{
 		writeSector(currentEntry.getSectorNumber(), currentEntry.getBuffer(),currentEntry.getIndexOffset());
-	    
+		processTaskOnReturn();
+	    }
 	    }else{
 		Debug.println('F', "Waiting");
 		return;
 	    }
+
 	}
+	
+	public void processTaskOnReturn(){
+	    CPU.setOnInterruptReturn(new Runnable(){
+
+		@Override
+		public void run() {
+		    System.out.println("on return ");
+			currentEntry.getSemaphore().P();
+			setCurrentEntryToNull();
+		}	
+	    });
+	
+    }
 
     }
 

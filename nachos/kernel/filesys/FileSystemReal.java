@@ -418,5 +418,11 @@ class FileSystemReal extends FileSystem {
     directory.fetchFrom(directoryFile);
     directory.print();
 
-  } 
+  }
+
+@Override
+public void fsck() {
+    // TODO Auto-generated method stub
+    
+} 
 }
