@@ -10,6 +10,8 @@
 
 package nachos.kernel.filesys;
 
+import java.util.ArrayList;
+
 import nachos.Debug;
 import nachos.kernel.devices.DiskDriver;
 import nachos.kernel.threads.Lock;
@@ -121,7 +123,7 @@ class FileSystemReal extends FileSystem {
   private final OpenFile directoryFile;
   
   /** file header table */
-  private FileHeaderTable fht;
+  private FileHeaderTable fht = new FileHeaderTable();
   
   /** fileheader (inode) lock */
   private SpinLock dir = new SpinLock("directory lock");
@@ -330,7 +332,7 @@ class FileSystemReal extends FileSystem {
       openFile = new OpenFileReal(sector, this);// name was found in directory 
     
     dir.release();
-    System.out.println("LOCK released " + sector);
+    //System.out.println("LOCK released " + sector);
     return openFile;			        // return null if not found
   }
 
@@ -420,9 +422,94 @@ class FileSystemReal extends FileSystem {
 
   }
 
-@Override
-public void fsck() {
-    // TODO Auto-generated method stub
+  /** run a check on the file system and print out if errors exist,
+   * otherwise print a clear test.
+   */
+  public void fsck() {
+      // create local copies
+      FileHeader bitHdr = new FileHeader(this);
+      FileHeader dirHdr = new FileHeader(this);
+      FileHeader tempHdr = new FileHeader(this);
+      BitMap freeMap = new BitMap(numDiskSectors);
+      Directory directory = new Directory(NumDirEntries, this);
+      
+      // grab disk info
+      bitHdr.fetchFrom(FreeMapSector);
+      dirHdr.fetchFrom(DirectorySector);
+      directory.fetchFrom(directoryFile);
+      freeMap.fetchFrom(freeMapFile);
+      
+      DirectoryEntry[] table = directory.getTable();
+      ArrayList<String> fileNames = new ArrayList<String>();
+      ArrayList<Integer> fhs = new ArrayList<Integer>();
+      ArrayList<Integer> sectors = new ArrayList<Integer>();
     
-} 
+      int loc;  //sector we are looking at
+      int numSect; // number of sectors
+      int[] sectorsUsed; // used sectors
+      String name;   // name of file
+      boolean noDuplicates = true;
+      boolean noFHDups = true;
+      
+      for (DirectoryEntry d : table) {
+	  loc = d.getSector();
+	  name = d.getName();
+	      
+	  OpenFile temp = new OpenFileReal(loc, this);
+	  byte data[] = new byte[diskSectorSize];
+	  this.readSector(loc, data, 0);
+	  
+	  if (d.inUse()) {
+	      tempHdr.fetchFrom(loc);
+	      
+	      // check for multiple sector use
+	      numSect = tempHdr.getNumSectors();
+	      sectorsUsed = tempHdr.getSectors();
+	      for (int i=0; i < numSect; i++) {
+		  if (sectors.contains(sectorsUsed[i]))
+		      Debug.print('+', "ERROR: two sectors are found on"
+		      	+ " different files (or duplicated on a single file)");
+		  else
+		      sectors.add(sectorsUsed[i]);
+	      }
+	      
+	      // set to empty in use in directory, make sure its empty in bitmap
+	      if (data[0] + data[1] + data[2] == 0)
+		  Debug.print('+', "ERROR: a file is marked in use in the directory, but is not"
+		  	+ " marked in use in the bitmap.");
+	      
+	      // check to see if the name already exists in the directory
+	      if (fileNames.contains(name)) {
+		  noDuplicates = false;
+		  Debug.print('+', "ERROR: two files with same name ("
+			  		+name+ ") reside in directory");
+	      }
+	      else  
+		  fileNames.add(name);
+	      // check for duplicate file headers (sector points to same fileheader)
+	      if (fhs.contains(loc)) {
+		  noFHDups = false;
+		  Debug.print('+', "ERROR: two files with same fileheader ("
+			  		+name+ ") reside in directory");
+	      }
+	      else  
+		  fhs.add(loc);
+	  }
+	  else {	      
+	      // set to empty in directory, make sure its empty in bitmap
+	      if (data[0] + data[1] + data[2] != 0 || data[3] != -128 || data[7] != 1 || data[11] !=2)
+		  Debug.print('+', "ERROR: a file is marked not in use in the directory, but in"
+		  	+ " use in the system.");
+	      
+	      // check if its improperly labeled as not in use
+	      if (name != null)
+		  Debug.print('+', "ERROR: File " +name+ " exists, not listed in directory."); 
+	  }
+      }
+           
+      if (noDuplicates) 
+	  Debug.print('+', "FS Check: No duplicate names found in directory.");
+      if (noFHDups) 
+	  Debug.print('+', "FS Check: No duplicate fileheaders found in directory.");
+  }
 }

@@ -227,5 +227,13 @@ class FileHeader {
     public String getDisc() { 
 	return dataSectors[0] + " " + numBytes;
     }
+    
+    public int getNumSectors() {
+	return numSectors;
+    }
+    
+    public int[] getSectors() {
+	return dataSectors;
+    }
 
 }
