@@ -276,16 +276,22 @@ class FileSystemReal extends FileSystem {
 
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
-
+    System.out.println("\n\n\n\nwaiting here\n\n\n\n");
     dir.acquire();
+    
     directory = new Directory(NumDirEntries, this);
+    System.out.println("here waiting out of fetcg");
+    
     directory.fetchFrom(directoryFile);
-
+    
     if (directory.find(name) != -1){
+	System.out.println("\n\n\n\not waiting here\n\n\n\n");
       success = false;		// file is already in directory
     }
-    else {	
+    else {
+	System.out.println("\n\n\n\not waiting here\n\n\n\n");
       bm.acquire();
+//      System.out.println("\n\n\n\not waiting here\n\n\n\n");
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header

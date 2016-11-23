@@ -79,6 +79,7 @@ class Directory {
 	    table[i].internalize(buffer, pos);
 	    pos += DirectoryEntry.sizeOf();
 	}
+	
     }
 
     /**

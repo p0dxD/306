@@ -305,8 +305,8 @@ public class FileSystemTest implements Runnable {
 					System.out.println("In here");
 					NachosThread thread = new NachosThread("hw4 test one",  new HwFourTest("one"));
 					Nachos.scheduler.readyToRun(thread);
-//					NachosThread thread2 = new NachosThread("hw4 test one",  new HwFourTest("two"));
-//					Nachos.scheduler.readyToRun(thread2);
+					NachosThread thread2 = new NachosThread("hw4 test one",  new HwFourTest("two"));
+					Nachos.scheduler.readyToRun(thread2);
 				    }
 				 })
 	 });
@@ -349,8 +349,8 @@ public class FileSystemTest implements Runnable {
 			@Override
 			public void run() {
 			    // TODO Auto-generated method stub
-			    System.out.println("doing this");
-			    new CopyTest("test/shell","test"+name).run();
+			    
+			    new CopyTest("test/console1","test"+name).run();
 			    Nachos.scheduler.finishThread();
 			}
 			
