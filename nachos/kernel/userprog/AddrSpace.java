@@ -264,8 +264,12 @@ public class AddrSpace {
 
 	        executable.seek(noffH.code.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);//fix convert to physical
+	        System.out.println("noffH.code.inFileAddr " + noffH.code.inFileAddr +" Size " +noffH.code.size);
+	        int startIndexForPhysical = noffH.code.virtualAddr/Machine.PageSize;
+	        int endIndexOfPhysical = (int)Math.ceil(noffH.code.size/(double)Machine.PageSize)+noffH.code.virtualAddr/Machine.PageSize;
+	        
 	        //read part by part page by page
-	        memManager.copySegmentToPhysical(physicalLocation, executable);
+	        memManager.copySegmentToPhysical(physicalLocation, executable, startIndexForPhysical, endIndexOfPhysical);
 	      }
 
 	      if (noffH.initData.size > 0) {
@@ -276,7 +280,11 @@ public class AddrSpace {
 	        executable.seek(noffH.initData.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);//same as top
 	        //convert v to p
-	        memManager.copySegmentToPhysical(physicalLocation, executable);
+	        
+	        int endIndexOfPhysical = (int)Math.ceil(noffH.initData.size/(double)Machine.PageSize)+noffH.initData.inFileAddr/Machine.PageSize;
+	        int startIndexForPhysical = noffH.initData.virtualAddr/Machine.PageSize;
+	        
+	        memManager.copySegmentToPhysical(physicalLocation, executable, startIndexForPhysical, endIndexOfPhysical);
 	        
 	      }
 	      return 0;

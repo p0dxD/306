@@ -9,7 +9,7 @@ int i = 0;
 while(i <10){
   int test = Exec("test/halt2");
   Yield();
-  Fork(&fork);
+//   Fork(&fork);
   Join(test);
   i++;
   }

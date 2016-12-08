@@ -24,6 +24,8 @@
 	.globl __start
 	.ent	__start
 __start:
+	sw      $sp, heap_start
+	sw      $sp, heap_limit
 	subu	$sp,$sp,16  /* GCC expects spill space for r4-r7 */
 	jal	main
 	move	$4,$0		
@@ -155,4 +157,10 @@ Yield:
 __main:
         j       $31
         .end    __main
-
+        
+	.data
+	.globl  heap_start, heap_limit
+	heap_start: 
+		.word   0
+	heap_limit: 
+		.word   0

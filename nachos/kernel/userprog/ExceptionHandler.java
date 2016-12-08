@@ -98,6 +98,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Debug.println('S', "Write syscall triggered.");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
+		System.out.println("POINTER " + ptr +" in WRITE");
 		byte buf[] = new byte[len];
 		memManager.getCharsFromMemory(ptr, ((UserThread)NachosThread.currentThread()).space, len, buf);
 		Syscall.write(buf, len, CPU.readRegister(6));
@@ -136,7 +137,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	}else if(which == MachineException.PageFaultException){
 	    System.out.println("PageFaultException");
 	}else if(which == MachineException.IllegalInstrException){
-	    System.out.println("IllegalInstrException hashdashdlsajdajksdhaksj");
+	    System.out.println("IllegalInstrException");
 	}else if(which == MachineException.NumExceptionTypes){
 	    System.out.println("NumExceptionTypes");
 	}else if(which == MachineException.OverflowException){
@@ -148,8 +149,6 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	}else if(which == MachineException.AddressErrorException){
 	    System.out.println("AddressErrorException");
 	}
-	String[] str = MachineException.exceptionNames;
-	
 
 	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
 	memManager.finishAddrs(((UserThread)NachosThread.currentThread()).space);

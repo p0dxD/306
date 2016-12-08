@@ -38,9 +38,11 @@ public class MemManager {
     public  int convertVirtualToPhysical(long address, AddrSpace space){
         int virtualIndex = (int)address/Machine.PageSize;
         int virtualOffset = (int)address%Machine.PageSize;
+
         lockMaping.acquire();
         ArrayList<Integer> physicalPages = maping.get(space.getSpaceId());
         lockMaping.release();
+//        System.out.println("NUM OF PHYSICAL PAGES " + physicalPages.size());
         //the actual physical address
         int physicalIndexAddress  = (physicalPages.get(virtualIndex)*Machine.PageSize) + virtualOffset;
         return physicalIndexAddress;
@@ -274,12 +276,12 @@ public class MemManager {
     }
     
     /**
-     * 
-     * @param physical
-     * @param executable
+     * Copy a section of exec into memory
+     * @param physical location where to put it
+     * @param executable contains the data
      */
-    public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable){	  
-	  for(int i = 0; i < physical.size();i++){
+    public void copySegmentToPhysical(ArrayList<Integer> physical, OpenFile executable,int virtualPageNumber, int sizeOfSegment){	
+	  for(int i = virtualPageNumber; (i < sizeOfSegment); i++){
 	      executable.read(Machine.mainMemory, physical.get(i)*Machine.PageSize, Machine.PageSize);
 	  }
     }
