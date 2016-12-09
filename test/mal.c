@@ -15,7 +15,7 @@ static void* extend_heap(int amount);
 static void free_block(void* ptr);
 static void* coalesce(void* ptr);
 static int coalesce_case(void* ptr);
-
+static int print_num(void *num);
 
 /**
  * You should store the head of your free list in this variable.
@@ -23,10 +23,7 @@ static int coalesce_case(void* ptr);
  * which will allow you to pass the address to sf_snapshot in a different file.
  */
 
-/* #ifdef NEXT*/
-/* static void *rover;           Next fit rover */
-/* #endif*/
- /* static void print_blocks(void);*/
+
 sf_free_header* freelist_head = 0;
 void* address_new = 0;/*ADDED*/
 void* init_address = 0;/*ADDED*/
@@ -45,29 +42,26 @@ void* sf_malloc(int size) {
   if(size == 0)
     return 0;
 /*Aling initial address*/
-  init_address = heap_limit = heap_start;
+  init_address = heap_limit;
   int k = ((int)init_address & 0xF);
 /*ALIGNMENT*/
   if(k == 0){
       heap_limit += 8;
-      heap_start = heap_limit;
   }else{
     if(k == 8){
       /*Do nothing*/
     }else if(k > 8){
     heap_limit+=((16-k)+8);
-    heap_start = heap_limit;
     }else if(k < 8){
     heap_limit+=(8-k);
-    heap_start = heap_limit;
     }
   }
 /*END ALIGNMENT*/
-init_address = heap_start;
-/* printf("%p\n", init_address);*/
+init_address = heap_limit;
+
   if(freelist_head == 0){
     heap_start = init_address;/*keep check of the start*/
-    
+    heap_limit += PAGE_SIZE;
       freelist_head = init_address;
       freelist_head->header.alloc = 0;
       freelist_head->header.requested_size = 0;/*4064 TOTAL payload*/
@@ -78,9 +72,6 @@ init_address = heap_start;
       sb->block_size = PAGE_SIZE>>4;
       sb->alloc = 0;
 
-      /* #ifdef NEXT*/
-      /*   rover = freelist_head;*/
-      /* #endif */
   }
   /*align what ever they give me, and add for footer and header*/
   asize = ALIGN(size)+16;
@@ -110,31 +101,19 @@ void sf_free(void *ptr) {
   if(ptr == 0){
     return;
   }
-
     ptr = ptr - 8;/*get it pointing at header*/
-    /* void* saved = ptr;*/
-    /* sf_blockprint(freelist_head);*/
-    /* printf("INSIDE FREEE %p\n", ptr);*/
-    /* sf_blockprint(ptr);*/
     free_block(ptr);
-    /* printf("FREE BLOCK%p\n", ptr);*/
-
-    /* print_blocks();*/
     coalesce(ptr);
-    /* printf("DONE COLESEESE\n");*/
-    /* sf_blockprint(freelist_head);*/
-    /* print_blocks();*/
 }
 
 
 /****************************************HELPERS************************************************************/
 
 static void* coalesce(void* ptr){
-  /* printf("%s\n","INSIDE COALESCE" );*/
   void* before = 0;
   int block_size;
   sf_footer* sb;
-  if(ptr != heap_start){
+  if(ptr != heap_limit){
     before = ptr-8;
     before = before-(((sf_footer *)before)->block_size<<4)+8;
   }else{
@@ -146,7 +125,6 @@ static void* coalesce(void* ptr){
   switch(coalesce_case(ptr)){
 
     case 2:/*The one aftr is free*/
-    /* printf("Case 2\n");*/
 
     if(((sf_free_header*)before)->prev!= 0 && ((sf_free_header*)before)->prev->next != 0)
       ((sf_free_header*)before)->prev->next = ((sf_free_header*)before)->next;/*Make my next its next*/
@@ -168,13 +146,11 @@ static void* coalesce(void* ptr){
     break;
     case 3:/*The one aftr and before are free*/
 
-    /* printf("Case 3%p\n", freelist_head);*/
-    /* print_blocks();*/
     if(((sf_free_header*)after)->prev != 0 && ((sf_free_header*)after)->prev->next != 0)
       ((sf_free_header*)after)->prev->next = ((sf_free_header*)after)->next;/*Make my next its next*/
     if(((sf_free_header*)after)->next!= 0 && ((sf_free_header*)after)->next->prev != 0)
       ((sf_free_header*)after)->next->prev = ((sf_free_header*)after)->prev;/*Make my prev its prev*/
-/* printf("%s\n", "SEF?");*/
+
       /*Extend block*/
       block_size = (((sf_free_header* )ptr)->header.block_size)+(((sf_free_header* )after)->header.block_size);
       ((sf_free_header*)ptr)->header.alloc = 0;
@@ -189,8 +165,6 @@ static void* coalesce(void* ptr){
     break;
     case 4:/*Case 4*/
 
-      /* printf("Case 4\n");*/
-      /* print_blocks();*/
     if(((sf_free_header*)before)->prev!= 0 && ((sf_free_header*)before)->prev->next != 0)
       ((sf_free_header*)before)->prev->next = ((sf_free_header*)before)->next;/*Make my next its next*/
     if(((sf_free_header*)before)->next!= 0 && ((sf_free_header*)before)->next->prev != 0)
@@ -219,19 +193,11 @@ static void* coalesce(void* ptr){
     break;
     case 1:
     default:/**/
-    /* #ifdef NEXT                                                        */
-    /* Make sure the rover isn't pointing into the free block */
-    /* that we just coalesced */
-    /*       rover = ptr;*/
-    /**/
-    /* #endif*/
-    /* printf("Case 1\n");*/
 
     break;
   }/*END switch*/
   /*TAKE CARE OF HEAD*/
   if(freelist_head == ((sf_free_header*)before)){
-    /* printf("%s\n", "equal to before");*/
     /*Make the next the head unless its also being removed*/
     if( ((sf_free_header*)before)->next != ((sf_free_header*)after)){
       freelist_head = ((sf_free_header*)before)->next;
@@ -246,7 +212,6 @@ static void* coalesce(void* ptr){
       }
     }
   }else if(freelist_head == ((sf_free_header*)after)){
-    /* printf("%s\n", "equal to after");*/
     if(((sf_free_header*)after)->next != ((sf_free_header*)before)){
       freelist_head = ((sf_free_header*)after)->next;
     }else{
@@ -288,30 +253,18 @@ static void* coalesce(void* ptr){
   }
 
 #else/*LIFO or other*/
-  /* printf("%s\n", "default");*/
-  /* sf_blockprint(ptr);*/
+
   if(freelist_head != 0){
-    /* printf("%s\n", "Not null");*/
-    /* print_blocks();*/
-    /* sf_blockprint(ptr);*/
     freelist_head->prev = ptr;
-    /* sf_blockprint(freelist_head->prev);*/
-    /* freelist_head = ptr;*/
     ((sf_free_header*)ptr)->next = freelist_head;
-    /* printf("%p\n", freelist_head);*/
     ((sf_free_header*)ptr)->prev = 0;
     freelist_head = ptr;
-    /* printf("%s\n", "BEFORE");*/
-    /* sf_blockprint(freelist_head);*/
-    /* printf("The free block next prev \n", freelist_head->next->prev);*/
 }else{
     freelist_head = ptr;
     freelist_head->next = 0;
     freelist_head->prev = 0;
 }
 #endif
-/* printf("AFTER its done \n");*/
-/* print_blocks();*/
 
 return ptr;
 }
@@ -476,6 +429,7 @@ static void* extend_heap(int amount){
   void* initial_address_in_heap = heap_limit;/*to retrive for later*/
   int temp = amount;
   while(amount > 0){
+  heap_limit +=PAGE_SIZE;
   --amount;
 }/*End while*/
 
@@ -505,19 +459,117 @@ static int extend_by(int block_size){
   }
 
 }
+/****************************For debugging **************************************************************/
+void press_to_cont(){
+Write("\r\nPress Enter to Continue\r\n",26,1);
+	char test[1];
+	Read(test, 1, 0);
+	while(test[0] != '\n')
+	Read(test, 1, 0);
+	;
+	
+	Write("\r\n",2,1);
+}
+
+
+#define check_prim_contents(actual_value, expected_value, fmt_spec, name) do { \
+    if (*(actual_value) != (expected_value)) { \
+        error("Expected " name " to be " fmt_spec " but got " fmt_spec "\n", (expected_value), *(actual_value)); \
+        error("Aborting...\n"); \
+        assert(false); \
+    } else { \
+        success(name " retained the value of " fmt_spec " after assignment\n", (expected_value)); \
+    } \
+} while(0)
+
+char* itoa(int i, char b[]){
+    char const digit[] = "0123456789";
+    char* p = b;
+    if(i<0){
+        *p++ = '-';
+        i *= -1;
+    }
+    int shifter = i;
+    do{ //Move to where representation ends
+        ++p;
+        shifter = shifter/10;
+    }while(shifter);
+    *p = '\0';
+    do{ //Move back, inserting digits as u go
+        *--p = digit[i%10];
+        i = i/10;
+    }while(i);
+    return b;
+}
+
+/*Simple strlen to get size of a string, null terminated*/
+int strlen(char *arg){
+	int i = 0;
+	while(arg[i++]!='\0');
+	return --i;
+}
+
+/*Prints a number to screen*/
+int print_num(void *num){
+	char value[32];//max num for an int
+	itoa((int)num,value);
+	Write(value,strlen(value),1);
+}
+
+/*Prints a number to screen*/
+int print_int_num(int num){
+	char value[32];//max num for an int
+	itoa(num,value);
+	Write(value,strlen(value),1);
+}
+
+/*counts num of free blocks around the place and returns value*/
+int numb_of_free_blocks(){
+	sf_free_header* ptr = freelist_head;
+	int i;
+	for(i =0; ptr!=0;i++){
+		ptr = ptr->next;
+	}
+	return i;
+}
+/***************************Testing **************************************************************/
 
 int main(){
+	char *message_blocks = "\r\nNumber of free blocks: ";
+	
 	Write("=== Test1: Allocation test ===\n",31,1);
-	 Write("\r",1,1);
+	Write("\r",1,1);
 	void *memory = sf_malloc(128);
+	print_num(memory);
 	((char *)memory)[0] = 't';
 	((char *)memory)[1] = 'e';
 	((char *)memory)[2] = 's';
 	((char *)memory)[3] = 't';
 	
 	Write(memory,4,1);
-    sf_free(memory);
+	//sf_free(memory);
+	//display message of blocks
+	Write(message_blocks,strlen(message_blocks),1);
+	print_int_num(numb_of_free_blocks());
+	
+	Write("\r",1,1);
     Write("\r\ntest1 done.\r\n",13,1);
-    //Write("\rPress Enter to Continue\r\n",26,1);
     press_to_cont();
+    
+    
+    Write("=== Test2: Allocation test ===\n",31,1);
+	Write("\r",1,1);
+	memory = sf_malloc(50);
+	print_num(memory);
+	((char *)memory)[0] = 't';
+	((char *)memory)[1] = 'e';
+	((char *)memory)[2] = 's';
+	((char *)memory)[3] = 't';
+	((char *)memory)[4] = '2';
+	
+	Write(memory,5,1);
+    sf_free(memory);
+    Write("\r\ntest2 done.\r\n",13,1);
+    press_to_cont();
+      
 }

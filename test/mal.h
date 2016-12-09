@@ -10,16 +10,6 @@
 #include "syscall.h"
 
 
-void press_to_cont(){
-	char test[1];
-	Read(test, 1, 0);
-	Write(test[0],1,1);
-	while(test[0] != '\n')
-	Read(test, 1, 0);
-	;
-	
-	//Write("\r\n",2,1);
-}
 
 #define ALLOC_SIZE_BITS 4
 #define BLOCK_SIZE_BITS 28
