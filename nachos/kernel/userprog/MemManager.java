@@ -7,17 +7,25 @@ import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.SpinLock;
+import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.TranslationEntry;
 
 public class MemManager {
-    private final SpinLock lockMaping  = new SpinLock("Lock for maping");
+
+    /**Keeps track of the physical memory taken*/
     private int[] isTaken  = new int[Machine.NumPhysPages];
+    /**Stores the array of physical memory for quick reference*/
     private HashMap<Integer, ArrayList<Integer>> maping  = new HashMap<>();
+    /**Stores all the addresses open*/
     private HashMap<Integer, AddrSpace> addresses = new HashMap<>();
+    /**Lock to access addressed*/
     private final SpinLock lockAddrs  = new SpinLock("Lock for maping");
+    /**Lock for physical memory array*/
     private final SpinLock lockPhysical = new SpinLock("Lock for maping");
+    /**Lock for the maping of physical with*/
+    private final SpinLock lockMaping  = new SpinLock("Lock for maping");
     
     //Singleton of MemManager
     static MemManager instance = new MemManager();
@@ -167,14 +175,63 @@ public class MemManager {
         Debug.println('S', "Done cleaning up process.");
 
     }
+    /**
+     * Calculates the pages needed to be expanded from address
+     * @return size needed of pages for expansion
+     */
+    public int getTotalPageSizeNeededForExpansion(int badAddress, AddrSpace space){
+	//get the current max size
+	int currentSize = space.getPageTableLength();
+	System.out.println("CurrentSize " + currentSize +" " + (int)Math.ceil(badAddress/Machine.PageSize));
+	//get the additional size to add 
+	int pages = (int)Math.ceil(badAddress/Machine.PageSize)-currentSize;
+
+	return pages+1;
+    }
+    
+    /**
+     * Gives the physical to a vm page specified
+     * @param space where to add it to
+     * @param page that needs it
+     * @return true on success, else false
+     */
+    public boolean givePhysicalMem(AddrSpace space, int page){
+	//o
+	int numOfPagesNeeded = 1;
+    	lockMaping.acquire();
+    	ArrayList<Integer> parentPhysicalSpots = maping.get(space.getSpaceId());
+    	lockMaping.release();
+    	
+    	ArrayList<Integer> list = getPhysicalMemoryLocations(numOfPagesNeeded);
+    	//we dont have any physical
+    	if(list == null){
+    	    return false;
+    	}
+    	//make it valid and add physical mem
+    	space.setPhysicalMemoryOfEntry(page, list.get(0));
+    	//expand the arraylist 
+    	parentPhysicalSpots.add(list.get(0));
+    	//update table of physical locations
+    	addPhysicalLocationForSpaceId(space.getSpaceId(), parentPhysicalSpots);
+	return true;
+    }
+    
+    /**
+     * Locates the index of the given address in virtual mem
+     * @param address to locate its location in array
+     * @return the index
+     */
+    public int getIndexOfVirtualAtAddress(int address){
+	return address/Machine.PageSize;
+    }
     
     
     /**
-     * 
+     * Gets physical memory index of that available
      * @param pagesNeeded
-     * @return
+     * @return arraylist with physical locations allocated for this 
      */
-    public  ArrayList<Integer> physicalMemoryLocation(int pagesNeeded){
+    public  ArrayList<Integer> getPhysicalMemoryLocations(int pagesNeeded){
 	  ArrayList<Integer> physicalLocation = new ArrayList<Integer>();
 	  
 	  lockPhysical.acquire();
@@ -287,7 +344,7 @@ public class MemManager {
     }
     
     /**
-     * 
+     * Adds reference of a space and the places it got from physical memory
      * @param space
      * @param physicalChild
      */
@@ -307,8 +364,8 @@ public class MemManager {
     }
     
     /**
-     * 
-     * @return
+     * Gets the size of the pages needed for stack
+     * @return size of stack in pages
      */
     public int getPagesForStackSize(){
 	return (int)(AddrSpace.getUserStackSize() / Machine.PageSize);

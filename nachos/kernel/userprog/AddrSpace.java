@@ -66,6 +66,9 @@ public class AddrSpace {
   private int SpaceId; 
   private MemManager memManager = MemManager.getInstance();
  
+  public void setPageTable(TranslationEntry pageTable[]){
+      this.pageTable = pageTable;
+  }
   
   public static int getUserStackSize(){
       return AddrSpace.UserStackSize;
@@ -233,7 +236,7 @@ public class AddrSpace {
 							// virtual memory
 	  if(memManager.isEnoughPhysMem(numPages)){
 
-	      ArrayList<Integer> physicalLocation = memManager.physicalMemoryLocation(numPages);
+	      ArrayList<Integer> physicalLocation = memManager.getPhysicalMemoryLocations(numPages);
 	      memManager.addPhysicalLocationForSpaceId(SpaceId,physicalLocation);
 	      
 	    Debug.println('a', "Initializing address space, numPages=" 
@@ -266,10 +269,12 @@ public class AddrSpace {
 //	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);//fix convert to physical
 	        System.out.println("noffH.code.inFileAddr " + noffH.code.inFileAddr +" Size " +noffH.code.size);
 	        int startIndexForPhysical = noffH.code.virtualAddr/Machine.PageSize;
-	        int endIndexOfPhysical = (int)Math.ceil(noffH.code.size/(double)Machine.PageSize)+noffH.code.virtualAddr/Machine.PageSize;
+	        int endIndexOfPhysical = (int)Math.ceil(noffH.code.size/(double)Machine.PageSize)
+	        	+noffH.code.virtualAddr/Machine.PageSize;
 	        
 	        //read part by part page by page
-	        memManager.copySegmentToPhysical(physicalLocation, executable, startIndexForPhysical, endIndexOfPhysical);
+	        memManager.copySegmentToPhysical(physicalLocation, executable, 
+	        	startIndexForPhysical, endIndexOfPhysical);
 	      }
 
 	      if (noffH.initData.size > 0) {
@@ -281,10 +286,12 @@ public class AddrSpace {
 //	        executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);//same as top
 	        //convert v to p
 	        
-	        int endIndexOfPhysical = (int)Math.ceil(noffH.initData.size/(double)Machine.PageSize)+noffH.initData.inFileAddr/Machine.PageSize;
+	        int endIndexOfPhysical = (int)Math.ceil(noffH.initData.size/(double)Machine.PageSize)
+	        	+noffH.initData.inFileAddr/Machine.PageSize;
 	        int startIndexForPhysical = noffH.initData.virtualAddr/Machine.PageSize;
 	        
-	        memManager.copySegmentToPhysical(physicalLocation, executable, startIndexForPhysical, endIndexOfPhysical);
+	        memManager.copySegmentToPhysical(physicalLocation, executable, 
+	        	startIndexForPhysical, endIndexOfPhysical);
 	        
 	      }
 	      return 0;
@@ -326,12 +333,13 @@ public class AddrSpace {
     	
     	
     	//get free space from physical memory for this threads own stack. 
-    	ArrayList<Integer> physPagesForStack = memManager.physicalMemoryLocation(pagesForStack);
+    	ArrayList<Integer> physPagesForStack = memManager.getPhysicalMemoryLocations(pagesForStack);
     	//map the retrieved free physical pages to the thread's pageTable's stack area. 
     	for(int i= (spaceParent.getPageTableLength()-pagesForStack);i<spaceParent.getPageTableLength(); i++){
     	    pageTableChild[i] = new TranslationEntry();
     	    pageTableChild[i].virtualPage = i;
-    	    pageTableChild[i].physicalPage = physPagesForStack.get(i-(spaceParent.getPageTableLength()-pagesForStack)); //calculation to start iterating at 0 through pagesForStack-1
+    	    pageTableChild[i].physicalPage = physPagesForStack.get(i-
+    		    (spaceParent.getPageTableLength()-pagesForStack)); //calculation to start iterating at 0 through pagesForStack-1
     	    pageTableChild[i].valid = true;
     	    pageTableChild[i].use= false;
     	    pageTableChild[i].dirty= false;
@@ -349,6 +357,46 @@ public class AddrSpace {
           }
       }   
       
-
+      /**
+       * Expands a pagetable by the requested pages
+       * @param space to expand
+       * @param pages to expand by
+       */
+      public void expandPageTable(int numPages){
+	  System.out.println("in here" + numPages);
+  	//get current pageTable
+  	 TranslationEntry pageTable[] = this.getPageTable();
+  	 TranslationEntry newPageTable[] = new TranslationEntry[pageTable.length+numPages];
+  	 //copy the old values
+  	 int i;
+  	 for(i = 0 ; i < pageTable.length; i++){
+  	     newPageTable[i] = pageTable[i];
+  	 }
+  	 //create the new values
+  	 for (; 0 < numPages; i++, numPages--) {
+  	     newPageTable[i] = new TranslationEntry();
+  	     newPageTable[i].virtualPage = i; 
+  	     newPageTable[i].valid = false;
+  	     newPageTable[i].use = false;
+  	     newPageTable[i].dirty = false;
+  	     newPageTable[i].readOnly = false;   // if code and data segments live on
+  						// separate pages, we could set code 
+  					       // pages to be read-only
+  	 }
+  	 //sets the page table to the newly created
+  	 this.setPageTable(newPageTable);
+  	 //restore state to modified pageTable
+  	 this.restoreState();
+      }
+      
+      /**
+       * Sets the physical of a virtual page
+       * @param vmPageNum of which to set it to
+       * @param physicalPage location
+       */
+      public void setPhysicalMemoryOfEntry(int vmPageNum,int physicalPage){
+	  pageTable[vmPageNum].physicalPage = physicalPage;
+	  pageTable[vmPageNum].valid = true;
+      }
             
 }

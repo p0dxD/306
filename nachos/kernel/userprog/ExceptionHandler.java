@@ -136,6 +136,13 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    return;
 	}else if(which == MachineException.PageFaultException){
 	    System.out.println("PageFaultException");
+	    int badAddress = CPU.readRegister(MIPS.BadVAddrReg);
+	    //get physical memory
+	    int index = memManager.getIndexOfVirtualAtAddress(badAddress);
+	    System.out.println("Should be 13 =? "+index);
+	    memManager.givePhysicalMem(space, index);
+	    //Debug.ASSERT(false);
+	    return;
 	}else if(which == MachineException.IllegalInstrException){
 	    System.out.println("IllegalInstrException");
 	}else if(which == MachineException.NumExceptionTypes){
@@ -148,6 +155,14 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    System.out.println("SyscallException");
 	}else if(which == MachineException.AddressErrorException){
 	    System.out.println("AddressErrorException");
+	    int badAddress = CPU.readRegister(MIPS.BadVAddrReg);
+	    //get the #of pages needed
+	    int numPages = memManager.getTotalPageSizeNeededForExpansion(badAddress, space);
+	    System.out.println("num of pages needed " + numPages + badAddress);
+	    //expand with additional vm
+	    space.expandPageTable(numPages);
+
+	    return;
 	}
 
 	Debug.println('S', "Unexpected user mode, exiting current program " + which + ", " + type);
