@@ -11,13 +11,14 @@
 
 
 void press_to_cont(){
-	Write("Press Enter to Continue\r\n",25,1);
 	char test[1];
 	Read(test, 1, 0);
 	Write(test[0],1,1);
-	while(test[0] != '\n');
+	while(test[0] != '\n')
+	Read(test, 1, 0);
+	;
 	
-	Write("\r\n",2,1);
+	//Write("\r\n",2,1);
 }
 
 #define ALLOC_SIZE_BITS 4

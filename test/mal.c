@@ -507,8 +507,17 @@ static int extend_by(int block_size){
 }
 
 int main(){
-	Write("=== Test1: Allocation test ===\n\r",31,1);
-	void *memory = sf_malloc(92);
+	Write("=== Test1: Allocation test ===\n",31,1);
+	 Write("\r",1,1);
+	void *memory = sf_malloc(128);
+	((char *)memory)[0] = 't';
+	((char *)memory)[1] = 'e';
+	((char *)memory)[2] = 's';
+	((char *)memory)[3] = 't';
+	
+	Write(memory,4,1);
     sf_free(memory);
+    Write("\r\ntest1 done.\r\n",13,1);
+    //Write("\rPress Enter to Continue\r\n",26,1);
     press_to_cont();
 }
