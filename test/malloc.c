@@ -1,7 +1,7 @@
 #include "syscall.h"
 
 extern void *heap_start, *heap_limit;
-
+#define TEST 5
 int
 main(){
 heap_start+=1300;
@@ -24,6 +24,6 @@ int test10 = 0;
 
 	Write("heap_start",1,1);
 	Write("heap_limit",1,1);
-	
+	Write(TEST,1,1);
 	
 }
