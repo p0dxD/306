@@ -15,12 +15,24 @@ public class Paging {
     /** Sector size of the disk. */
     public final int diskSectorSize;
     
+    /**information about the sectors*/
+    int[] sectors;
+    
     public Paging(DiskDriver diskCache){
-	    Debug.print('f', "Initializing the file system.\n");
+	    Debug.print('L', "Initializing the cache driver.\n");
 	    this.diskCache = diskCache;
 	    numDiskSectors = diskCache.getNumSectors();
 	    diskSectorSize = diskCache.getSectorSize();
-	    System.out.println("This cache has " + diskCache.getNumSectors() + " sectors.");
-	    System.out.println("Each sector is of size " + diskCache.getSectorSize() + ".");
+	    sectors = new int[numDiskSectors];
+	    for(int i =0; i < numDiskSectors; i++){
+		sectors[i] = 0;//initially none in use
+	    }
+    }
+    
+    /**
+     * Checks to see if a page is contained within the cache
+     */
+    public void swap(){
+	
     }
 }
