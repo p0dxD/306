@@ -20,7 +20,7 @@ public class Paging {
 	    this.diskCache = diskCache;
 	    numDiskSectors = diskCache.getNumSectors();
 	    diskSectorSize = diskCache.getSectorSize();
-//	    System.out.println("This cache has " + diskCache.getNumSectors() + " sectors.");
-//	    System.out.println("Each sector is of size " + diskCache.getSectorSize() + ".");
+	    System.out.println("This cache has " + diskCache.getNumSectors() + " sectors.");
+	    System.out.println("Each sector is of size " + diskCache.getSectorSize() + ".");
     }
 }
