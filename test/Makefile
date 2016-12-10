@@ -43,7 +43,7 @@ INCDIR = $(NACHOSDIR)/test
 .SUFFIXES:
 
 all:
-
+	
 start.o: start.s $(INCDIR)/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
 	$(AS) $(ASFLAGS) -o start.o strt.s
@@ -59,15 +59,15 @@ halt: halt.o start.o
 	$(COFF2NOFF) halt.coff halt
 	rm halt.coff
 
-exec1.s: exec1.c
-	$(CC) $(SFLAGS) exec1.c
-exec1.o: exec1.c
-	$(CC) $(CFLAGS) exec1.c
-exec1: exec1.o start.o
-	$(LD) $(LDFLAGS) start.o exec1.o -o exec1.coff
-	rm exec1.o
-	$(COFF2NOFF) exec1.coff exec1
-	rm exec1.coff
+malloc_test.s: malloc_test.c
+	$(CC) $(SFLAGS) malloc_test.c
+malloc_test.o: malloc_test.c
+	$(CC) $(CFLAGS) malloc_test.c
+malloc_test: malloc_test.o malloc.o start.o
+	$(LD) $(LDFLAGS) start.o malloc_test.o malloc.o -o malloc_test.coff
+	rm malloc_test.o
+	$(COFF2NOFF) malloc_test.coff malloc_test
+	rm malloc_test.coff
 	
 # If you are using gmake, the following rules should enable you to
 # compile any of the test programs.  Otherwise, you have to copy the
