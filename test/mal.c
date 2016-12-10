@@ -559,17 +559,22 @@ int main(){
     
     Write("=== Test2: Allocation test ===\n",31,1);
 	Write("\r",1,1);
-	memory = sf_malloc(50);
-	print_num(memory);
-	((char *)memory)[0] = 't';
-	((char *)memory)[1] = 'e';
-	((char *)memory)[2] = 's';
-	((char *)memory)[3] = 't';
-	((char *)memory)[4] = '2';
+	void *memory2 = sf_malloc(50);
+	print_num(memory2);
+	((char *)memory2)[0] = 't';
+	((char *)memory2)[1] = 'e';
+	((char *)memory2)[2] = 's';
+	((char *)memory2)[3] = 't';
+	((char *)memory2)[4] = '2';
 	
-	Write(memory,5,1);
-    sf_free(memory);
+	Write(memory2,5,1);
+    //sf_free(memory2);
     Write("\r\ntest2 done.\r\n",13,1);
     press_to_cont();
-      
+   
+   	sf_free(memory);
+   	Write(message_blocks,strlen(message_blocks),1);
+	print_int_num(numb_of_free_blocks());
+	
+	
 }

@@ -20,9 +20,15 @@ package nachos.kernel.devices;
 
 import nachos.Debug;
 import nachos.machine.Machine;
+import nachos.util.CSCANQueue;
+import nachos.util.FIFOQueue;
+import nachos.util.Queue;
+import nachos.machine.CPU;
 import nachos.machine.Disk;
 import nachos.machine.InterruptHandler;
-import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
+import nachos.kernel.Nachos;
+import nachos.kernel.filesys.WorkEntry;
 import nachos.kernel.threads.Lock;
 
 
@@ -47,10 +53,17 @@ public class DiskDriver {
     private Disk disk;
 
     /** To synchronize requesting thread with the interrupt handler. */
-    private Semaphore semaphore;
+    private static WorkEntry currentEntry;
 
     /** Only one read/write request can be sent to the disk at a time. */
-    private Lock lock;
+    private static SpinLock lock;
+
+    /**Work queue containing what to read and write*/
+    private Queue<WorkEntry> workEntries;
+
+    /**Spinlock for the queue*/
+    private static final SpinLock mutex = new SpinLock("workqueue mutex");
+    private static final SpinLock entryM = new SpinLock("workqueue mutex");
 
     /**
      * Initialize the synchronous interface to the physical disk, in turn
@@ -59,10 +72,14 @@ public class DiskDriver {
      * @param unit  The disk unit to be handled by this driver.
      */
     public DiskDriver(int unit) {
-	semaphore = new Semaphore("synch disk", 0);
-	lock = new Lock("synch disk lock");
+	//	semaphore = new Semaphore("synch disk", 0);
+	lock = new SpinLock("synch disk lock");
 	disk = Machine.getDisk(unit);
 	disk.setHandler(new DiskIntHandler());
+	if (Nachos.options.DISK_CSCAN) 
+	    workEntries = new CSCANQueue();
+	else
+	    workEntries = new FIFOQueue<>();
     }
 
     /**
@@ -93,10 +110,8 @@ public class DiskDriver {
      */
     public void readSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-	lock.acquire();			// only one disk I/O at a time
-	disk.readRequest(sectorNumber, data, index);
-	semaphore.P();			// wait for interrupt
-	lock.release();
+	disk.readRequest(sectorNumber,data, index);
+
     }
 
     /**
@@ -109,12 +124,73 @@ public class DiskDriver {
      */
     public void writeSector(int sectorNumber, byte[] data, int index) {
 	Debug.ASSERT(0 <= sectorNumber && sectorNumber < getNumSectors());
-	lock.acquire();			// only one disk I/O at a time
-	disk.writeRequest(sectorNumber, data, index);
-	semaphore.P();			// wait for interrupt
-	lock.release();
+	//	lock.acquire();			// only one disk I/O at a time
+	disk.writeRequest(sectorNumber,data, index);
+	//	lock.release();
     }
 
+    /**Adds to current queue*/
+    public void addToQueue(WorkEntry workEntry){
+	int oldLevel = CPU.setLevel(CPU.IntOff);
+	mutex.acquire();
+	workEntries.offer(workEntry);
+	mutex.release();
+	CPU.setLevel(oldLevel);
+    }
+
+    /**Process the requested task, read or write*/
+    public void getWorkEntry(){
+	//get the next entry to process
+	
+	int oldLevel = CPU.setLevel(CPU.IntOff);
+	mutex.acquire();
+	entryM.acquire();
+	
+	currentEntry = workEntries.poll();
+	entryM.release();
+	mutex.release();
+	CPU.setLevel(oldLevel);
+    }
+
+    /**Process a current task on queue*/
+    public void processTask(){
+	
+	if(currentEntry == null){
+	    getWorkEntry();
+
+
+
+	    if(currentEntry == null) return;
+	    if(currentEntry.getTaskToBeCompleted()=='r'){
+
+		readSector(currentEntry.getSectorNumber(),currentEntry.getBuffer(), currentEntry.getIndexOffset());
+
+		currentEntry.getSemaphore().P();
+		setCurrentEntryToNull();
+
+
+	    }else if(currentEntry.getTaskToBeCompleted() == 'w'){
+		writeSector(currentEntry.getSectorNumber(),currentEntry.getBuffer(), currentEntry.getIndexOffset());
+		currentEntry.getSemaphore().P();
+		setCurrentEntryToNull();
+	    }else{
+		Debug.println('F', "Error with task trying to be completed");
+		return;  
+	    }
+	}else{
+	    Debug.println('F', "Waiting for interrupt driver is busy");
+	    return;
+	}
+
+    }
+
+    public void setCurrentEntryToNull(){
+	int oldLevel = CPU.setLevel(CPU.IntOff);
+	entryM.acquire();
+	currentEntry = null;
+	entryM.release();
+	CPU.setLevel(oldLevel);
+    }
     /**
      * DiskDriver interrupt handler class.
      */
@@ -124,8 +200,40 @@ public class DiskDriver {
 	 * the request that just finished.
 	 */
 	public void handleInterrupt() {
-	    semaphore.V();
+	    currentEntry.getSemaphore().V();
+	    
+	    if(currentEntry == null){
+	    mutex.acquire();
+	    entryM.acquire();
+	    currentEntry = workEntries.poll();
+	    entryM.release();
+	    mutex.release();
+	    if(currentEntry == null) return;
+	    if(currentEntry.getTaskToBeCompleted() == 'r'){
+		readSector(currentEntry.getSectorNumber(), currentEntry.getBuffer(),currentEntry.getIndexOffset());
+		processTaskOnReturn();
+	    }else{
+		writeSector(currentEntry.getSectorNumber(), currentEntry.getBuffer(),currentEntry.getIndexOffset());
+		processTaskOnReturn();
+	    }
+	    }else{
+		return;
+	    }
+
 	}
+	
+	public void processTaskOnReturn(){
+	    CPU.setOnInterruptReturn(new Runnable(){
+
+		@Override
+		public void run() {
+			currentEntry.getSemaphore().P();
+			setCurrentEntryToNull();
+		}	
+	    });
+	
+    }
+
     }
 
 }

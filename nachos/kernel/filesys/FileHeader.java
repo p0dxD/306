@@ -207,7 +207,7 @@ class FileHeader {
 	byte data[] = new byte[diskSectorSize];
 
 	System.out.print("FileHeader contents.  File size: " + numBytes
-		+ ".,  File blocks: ");
+		+ ".,  File blocks: " +  "  File start sector: " + dataSectors[0]);
 	for (i = 0; i < numSectors; i++)
 	    System.out.print(dataSectors[i] + " ");
 
@@ -222,6 +222,18 @@ class FileHeader {
 	    }
 	    System.out.println();
 	}
+    }
+    
+    public String getDisc() { 
+	return dataSectors[0] + " " + numBytes;
+    }
+    
+    public int getNumSectors() {
+	return numSectors;
+    }
+    
+    public int[] getSectors() {
+	return dataSectors;
     }
 
 }
