@@ -10,8 +10,12 @@
 
 package nachos.kernel.filesys;
 
+import java.util.ArrayList;
+
 import nachos.Debug;
 import nachos.kernel.devices.DiskDriver;
+import nachos.kernel.threads.Lock;
+import nachos.kernel.threads.SpinLock;
 
 /**
  * This class manages the overall operation of the file system.
@@ -117,6 +121,15 @@ class FileSystemReal extends FileSystem {
 
   /** "Root" directory -- list of file names, represented as a file. */
   private final OpenFile directoryFile;
+  
+  /** file header table */
+  public static FileHeaderTable fht = new FileHeaderTable();
+  
+  /** file header (directory) lock */
+  private SpinLock dir = new SpinLock("directory lock");
+  
+  /** file header (bm) lock */
+  private SpinLock bm = new SpinLock("bitmap lock");
 
   /**
    * Initialize the file system.  If format = true, the disk has
@@ -205,7 +218,9 @@ class FileSystemReal extends FileSystem {
    * @param index Offset in the buffer at which to place the data.
    */
   void readSector(int sectorNumber, byte[] data, int index) {
-      diskDriver.readSector(sectorNumber, data, index);
+      diskDriver.addToQueue( new WorkEntry(sectorNumber, data, index, 'r'));
+      diskDriver.processTask();
+      
   }
   
   /**
@@ -216,7 +231,8 @@ class FileSystemReal extends FileSystem {
    * @param index Offset in the buffer from which to get the data.
    */
   void writeSector(int sectorNumber, byte[] data, int index) {
-      diskDriver.writeSector(sectorNumber, data, index);
+      diskDriver.addToQueue( new WorkEntry(sectorNumber, data, index, 'w'));
+      diskDriver.processTask();
   }
 
   /**
@@ -256,33 +272,42 @@ class FileSystemReal extends FileSystem {
 
     Debug.printf('f', "Creating file %s, size %d\n", name, 
 		 new Long(initialSize));
-
+    dir.acquire();
+    
     directory = new Directory(NumDirEntries, this);
+    
     directory.fetchFrom(directoryFile);
-
-    if (directory.find(name) != -1)
-      success = false;			// file is already in directory
-    else {	
+    if (directory.find(name) != -1){
+      success = false;		// file is already in directory
+    }
+    else {
+      bm.acquire();
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
       if (sector == -1) 		
-	success = false;		// no free block for file header 
-      else if (!directory.add(name, sector))
+	success = false;	// no free block for file header 
+      else if (!directory.add(name, sector)){
 	success = false;	// no space in directory
+      }
       else {
 	hdr = new FileHeader(this);
-	if (!hdr.allocate(freeMap, (int)initialSize))
+	fht.openFileHeader(hdr);
+	if (!hdr.allocate(freeMap, (int)initialSize))  {
 	  success = false;	// no space on disk for data
+	}
 	else {	
 	  success = true;
-	  // everthing worked, flush all changes back to disk
+	  // everything worked, flush all changes back to disk
 	  hdr.writeBack(sector); 		
 	  directory.writeBack(directoryFile);
 	  freeMap.writeBack(freeMapFile);
 	}
+	fht.closeFileHeader(hdr);
       }
+      bm.release();
     }
+    dir.release();
     return success;
   }
 
@@ -295,6 +320,7 @@ class FileSystemReal extends FileSystem {
    * @param name The text name of the file to be opened.
    */
   public OpenFile open(String name) { 
+   dir.acquire();
     Directory directory = new Directory(NumDirEntries, this);
     OpenFile openFile = null;
     int sector;
@@ -304,6 +330,9 @@ class FileSystemReal extends FileSystem {
     sector = directory.find(name); 
     if (sector >= 0) 		
       openFile = new OpenFileReal(sector, this);// name was found in directory 
+    
+    dir.release();
+    //System.out.println("LOCK released " + sector);
     return openFile;			        // return null if not found
   }
 
@@ -325,17 +354,24 @@ class FileSystemReal extends FileSystem {
     FileHeader fileHdr;
     int sector;
     
+    dir.acquire();
     directory = new Directory(NumDirEntries, this);
     directory.fetchFrom(directoryFile);
     sector = directory.find(name);
     if (sector == -1) {
        return false;			 // file not found 
     }
-    fileHdr = new FileHeader(this);
-    fileHdr.fetchFrom(sector);
-
+    
+    bm.acquire();
     freeMap = new BitMap(numDiskSectors);
     freeMap.fetchFrom(freeMapFile);
+    
+    fileHdr = new FileHeader(this);
+    fileHdr.fetchFrom(sector);
+    FileHeader temp = new FileHeader(this);
+    temp.fetchFrom(sector);
+    
+    fht.openFileHeader(temp);
 
     fileHdr.deallocate(freeMap);  		// remove data blocks
     freeMap.clear(sector);			// remove header block
@@ -343,6 +379,11 @@ class FileSystemReal extends FileSystem {
 
     freeMap.writeBack(freeMapFile);		// flush to disk
     directory.writeBack(directoryFile);        // flush to disk
+    
+    // release locks
+    fht.closeFileHeader(temp);
+    bm.release();
+    dir.release();
     return true;
   } 
 
@@ -384,5 +425,96 @@ class FileSystemReal extends FileSystem {
     directory.fetchFrom(directoryFile);
     directory.print();
 
-  } 
+  }
+
+  /** run a check on the file system and print out if errors exist,
+   * otherwise print a clear test.
+   */
+  public void fsck() {
+      // create local copies
+      FileHeader bitHdr = new FileHeader(this);
+      FileHeader dirHdr = new FileHeader(this);
+      FileHeader tempHdr = new FileHeader(this);
+      BitMap freeMap = new BitMap(numDiskSectors);
+      Directory directory = new Directory(NumDirEntries, this);
+      
+      // grab disk info
+      bitHdr.fetchFrom(FreeMapSector);
+      dirHdr.fetchFrom(DirectorySector);
+      directory.fetchFrom(directoryFile);
+      freeMap.fetchFrom(freeMapFile);
+      
+      DirectoryEntry[] table = directory.getTable();
+      ArrayList<String> fileNames = new ArrayList<String>();
+      ArrayList<Integer> fhs = new ArrayList<Integer>();
+      ArrayList<Integer> sectors = new ArrayList<Integer>();
+    
+      int loc;  //sector we are looking at
+      int numSect; // number of sectors
+      int[] sectorsUsed; // used sectors
+      String name;   // name of file
+      boolean noDuplicates = true;
+      boolean noFHDups = true;
+      
+      for (DirectoryEntry d : table) {
+	  loc = d.getSector();
+	  name = d.getName();
+	      
+	  OpenFile temp = new OpenFileReal(loc, this);
+	  byte data[] = new byte[diskSectorSize];
+	  this.readSector(loc, data, 0);
+	  
+	  if (d.inUse()) {
+	      tempHdr.fetchFrom(loc);
+	      
+	      // check for multiple sector use
+	      numSect = tempHdr.getNumSectors();
+	      sectorsUsed = tempHdr.getSectors();
+	      for (int i=0; i < numSect; i++) {
+		  if (sectors.contains(sectorsUsed[i]))
+		      Debug.print('+', "ERROR: two sectors are found on"
+		      	+ " different files (or duplicated on a single file)");
+		  else
+		      sectors.add(sectorsUsed[i]);
+	      }
+	      
+	      // set to empty in use in directory, make sure its empty in bitmap
+	      if (data[0] + data[1] + data[2] == 0)
+		  Debug.print('+', "ERROR: a file is marked in use in the directory, but is not"
+		  	+ " marked in use in the bitmap.");
+	      
+	      // check to see if the name already exists in the directory
+	      if (fileNames.contains(name)) {
+		  noDuplicates = false;
+		  Debug.print('+', "ERROR: two files with same name ("
+			  		+name+ ") reside in directory");
+	      }
+	      else  
+		  fileNames.add(name);
+	      // check for duplicate file headers (sector points to same fileheader)
+	      if (fhs.contains(loc)) {
+		  noFHDups = false;
+		  Debug.print('+', "ERROR: two files with same fileheader ("
+			  		+name+ ") reside in directory");
+	      }
+	      else  
+		  fhs.add(loc);
+	  }
+	  else {	      
+	      // set to empty in directory, make sure its empty in bitmap
+	      if (data[0] + data[1] + data[2] != 0 || data[3] != -128 || data[7] != 1 || data[11] !=2)
+		  Debug.print('+', "ERROR: a file is marked not in use in the directory, but in"
+		  	+ " use in the system.");
+	      
+	      // check if its improperly labeled as not in use
+	      if (name != null)
+		  Debug.print('+', "ERROR: File " +name+ " exists, not listed in directory."); 
+	  }
+      }
+           
+      if (noDuplicates) 
+	  Debug.print('+', "FS Check: No duplicate names found in directory.");
+      if (noFHDups) 
+	  Debug.print('+', "FS Check: No duplicate fileheaders found in directory.");
+  }
 }

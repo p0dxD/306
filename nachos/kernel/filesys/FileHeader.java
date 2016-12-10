@@ -77,7 +77,6 @@ class FileHeader {
 	diskSectorSize = filesystem.diskSectorSize;
 	NumDirect = ((diskSectorSize - 2 * 4) / 4);
 	MaxFileSize = (NumDirect * diskSectorSize);
-
 	dataSectors = new int[NumDirect];
 	// Safest to fill the table with garbage sector numbers,
 	// so that we error out quickly if we forget to initialize it properly.
@@ -132,8 +131,8 @@ class FileHeader {
 	    return false;		// file too large
 	numBytes = fileSize;
 	numSectors  = fileSize / diskSectorSize;
-	if (fileSize % diskSectorSize != 0) numSectors++;
 
+	if (fileSize % diskSectorSize != 0) numSectors++;
 	if (freeMap.numClear() < numSectors || NumDirect < numSectors)
 	    return false;		// not enough space
 
@@ -207,7 +206,7 @@ class FileHeader {
 	byte data[] = new byte[diskSectorSize];
 
 	System.out.print("FileHeader contents.  File size: " + numBytes
-		+ ".,  File blocks: ");
+		+ ".,  File blocks: " +  "  File start sector: " + dataSectors[0]);
 	for (i = 0; i < numSectors; i++)
 	    System.out.print(dataSectors[i] + " ");
 
@@ -222,6 +221,18 @@ class FileHeader {
 	    }
 	    System.out.println();
 	}
+    }
+    
+    public String getDisc() { 
+	return dataSectors[0] + " " + numBytes;
+    }
+    
+    public int getNumSectors() {
+	return numSectors;
+    }
+    
+    public int[] getSectors() {
+	return dataSectors;
     }
 
 }

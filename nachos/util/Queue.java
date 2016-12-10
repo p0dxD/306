@@ -43,4 +43,5 @@ public interface Queue<T> {
      */
     public boolean isEmpty();
     
+    public int size();
 }

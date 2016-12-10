@@ -8,7 +8,18 @@
  * === DO NOT MODIFY THIS FILE ===
  */
 #include "syscall.h"
+/*
+prototypes
+*/
 
+static void* find_fit(int size);
+static void place(void *bp, int asize, int size);
+static int extend_by(int block_size);
+static void* extend_heap(int amount);
+static void free_block(void* ptr);
+static void* coalesce(void* ptr);
+static int coalesce_case(void* ptr);
+static int print_num(void *num);
 
 
 #define ALLOC_SIZE_BITS 4

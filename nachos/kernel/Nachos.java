@@ -34,6 +34,7 @@ import nachos.kernel.devices.test.NetworkTest;
 import nachos.kernel.devices.test.SerialTest;
 import nachos.kernel.threads.Scheduler;
 import nachos.kernel.userprog.ExceptionHandler;
+import nachos.kernel.userprog.Paging;
 import nachos.kernel.filesys.FileSystem;
 import nachos.kernel.threads.test.CalloutTest;
 import nachos.kernel.threads.test.SMPTest;
@@ -58,11 +59,16 @@ public class Nachos implements Runnable {
     /** Access to the file system. */
     public static FileSystem fileSystem;
 
+    /**Access to paging*/
+    public static Paging paging;
+    
     /** Access to the console. */
     public static ConsoleDriver consoleDriver;
 
     /** Access to the disk. */
     public static DiskDriver diskDriver;
+    /**Second disk for cache*/
+    public static DiskDriver diskCache;
 
     /** Access to the network. */
     public static NetworkDriver networkDriver;
@@ -85,8 +91,10 @@ public class Nachos implements Runnable {
 	if(Machine.NUM_CONSOLES > 0)
 	    consoleDriver = new ConsoleDriver(Machine.getConsole(0));
 
-	if(Machine.NUM_DISKS > 0)
+	if(Machine.NUM_DISKS > 0){
 	    diskDriver = new DiskDriver(0);
+	    diskCache = new DiskDriver(1);
+	}
 
 	if(Machine.NUM_PORTS > 0)
 	    serialDriver = new SerialDriver();
@@ -96,8 +104,10 @@ public class Nachos implements Runnable {
 	
 	// Initialize the filesystem.
 
-	if(options.FILESYS_STUB || options.FILESYS_REAL)
+	if(options.FILESYS_STUB || options.FILESYS_REAL){
 	    fileSystem = FileSystem.init(diskDriver);
+	    paging = new Paging(diskCache);
+	}
 
 	// Do per-CPU initialization:  Before we can run user programs,
 	// we need to set an exception handler on each CPU to handle
