@@ -88,4 +88,11 @@ class FileSystemStub extends FileSystem {
 	return file.delete();
     }
 
+
+    @Override
+    public void fsck() {
+	// TODO Auto-generated method stub
+	
+    }
+
 }

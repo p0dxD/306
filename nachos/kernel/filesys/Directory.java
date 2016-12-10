@@ -79,6 +79,7 @@ class Directory {
 	    table[i].internalize(buffer, pos);
 	    pos += DirectoryEntry.sizeOf();
 	}
+
     }
 
     /**
@@ -193,5 +194,8 @@ class Directory {
 	    }
 	System.out.println("");
     }
-
+    
+    public DirectoryEntry[] getTable() {
+	return table;
+    }
 }

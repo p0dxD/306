@@ -123,7 +123,7 @@ public class Options {
     public int NUM_PORTS = 1;
     
     /** The types of disk devices on the system. */
-    public Class<?>[] DISK_TYPES = new Class<?>[] { /* Disk.class */ };
+    public Class<?>[] DISK_TYPES = new Class<?>[] {  Disk.class  };
 
     /** The number of disks on the system. */
     public int NUM_DISKS = DISK_TYPES.length;
@@ -180,6 +180,13 @@ public class Options {
     
     /** Should we run the network test? */
     public boolean NETWORK_TEST = false;
+   
+    public boolean DISK_CSCAN = false;
+    
+    public boolean HW4_TEST = false;
+    
+    /** FSCK */
+    public boolean FSCK = false;
     
     public Options(String[] args) {
 	argList = Arrays.asList(args);
@@ -310,7 +317,39 @@ public class Options {
 			    public void processOption(String flag, Object[] params) {
 				DISK_FILE_NAME = (String)params[0];
 			    }
-			 })
+			 }),
+		new Spec("-fs",  // set scheduling to spn
+			new Class[] {String.class, String.class},
+			"Usage: -fs <type>",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				
+				FILESYS_TEST = true;
+				if(((String)params[0]).equals("real")){
+				    FILESYS_REAL = true;
+				    FILESYS_STUB = false;
+				}
+				if(((String)params[1]).equals("cscan")){
+				    DISK_CSCAN = true;
+				}
+			    }
+			 }),
+		new Spec("-cscan",  // turn on fs check
+			new Class[] { },
+			"Usage: -fsck",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				FSCK = true;
+			    }
+			 }),
+		new Spec("-hw4",  // set disk scheduling to a circular scan
+			new Class[] { },
+			"Usage: -hw4",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				HW4_TEST = true;
+			    }
+			 }),		
 	});
     }
     
