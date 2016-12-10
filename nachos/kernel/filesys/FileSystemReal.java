@@ -277,24 +277,21 @@ class FileSystemReal extends FileSystem {
     directory = new Directory(NumDirEntries, this);
     
     directory.fetchFrom(directoryFile);
-    
     if (directory.find(name) != -1){
       success = false;		// file is already in directory
     }
     else {
-
       bm.acquire();
-//      System.out.println("\n\n\n\not waiting here\n\n\n\n");
       freeMap = new BitMap(numDiskSectors);
       freeMap.fetchFrom(freeMapFile);
       sector = freeMap.find();	// find a sector to hold the file header
       if (sector == -1) 		
 	success = false;	// no free block for file header 
-      else if (!directory.add(name, sector))
+      else if (!directory.add(name, sector)){
 	success = false;	// no space in directory
+      }
       else {
 	hdr = new FileHeader(this);
-	System.out.println("Size "+(int)initialSize);
 	fht.openFileHeader(hdr);
 	if (!hdr.allocate(freeMap, (int)initialSize))  {
 	  success = false;	// no space on disk for data

@@ -77,7 +77,6 @@ class FileHeader {
 	diskSectorSize = filesystem.diskSectorSize;
 	NumDirect = ((diskSectorSize - 2 * 4) / 4);
 	MaxFileSize = (NumDirect * diskSectorSize);
-
 	dataSectors = new int[NumDirect];
 	// Safest to fill the table with garbage sector numbers,
 	// so that we error out quickly if we forget to initialize it properly.
@@ -132,8 +131,8 @@ class FileHeader {
 	    return false;		// file too large
 	numBytes = fileSize;
 	numSectors  = fileSize / diskSectorSize;
-	if (fileSize % diskSectorSize != 0) numSectors++;
 
+	if (fileSize % diskSectorSize != 0) numSectors++;
 	if (freeMap.numClear() < numSectors || NumDirect < numSectors)
 	    return false;		// not enough space
 
