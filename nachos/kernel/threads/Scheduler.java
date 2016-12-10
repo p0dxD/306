@@ -265,6 +265,11 @@ public class Scheduler {
 	Debug.println('t', "Now in thread: " + currentThread.name);
     }
 
+    private static boolean isKernelThread(NachosThread thread){
+	//check if kernel 
+	return thread.getClass().getName().equals("nachos.machine.NachosThread");
+    }
+
     /**
      * Relinquish the CPU if any other thread is ready to run.
      * If so, put the thread on the end of the ready list, so that

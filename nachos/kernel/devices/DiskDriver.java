@@ -1,20 +1,3 @@
-// DiskDriver.java
-//	Class for synchronous access of the disk.  The physical disk 
-//	is an asynchronous device (disk requests return immediately, and
-//	an interrupt happens later on).  This is a layer on top of
-//	the disk providing a synchronous interface (requests wait until
-//	the request completes).
-//
-//	Uses a semaphore to synchronize the interrupt handlers with the
-//	pending requests.  And, because the physical disk can only
-//	handle one operation at a time, uses a lock to enforce mutual
-//	exclusion.
-//
-// Copyright (c) 1992-1993 The Regents of the University of California.
-// Copyright (c) 1998 Rice University.
-// Copyright (c) 2003 State University of New York at Stony Brook.
-// All rights reserved.  See the COPYRIGHT file for copyright notice and 
-// limitation of liability and disclaimer of warranty provisions.
 
 package nachos.kernel.devices;
 

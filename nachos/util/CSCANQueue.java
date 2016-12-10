@@ -1,3 +1,4 @@
+
 package nachos.util;
 import java.util.ArrayList;
 import nachos.kernel.filesys.WorkEntry;
@@ -85,5 +86,6 @@ public class CSCANQueue implements Queue<WorkEntry> {
     }
     
     
+
 
 }

@@ -1,3 +1,4 @@
+
 // OpenFileReal.java
 //	Class for reading and writing to individual files.
 //	The operations supported are similar to	the UNIX ones.
@@ -11,6 +12,10 @@
 package nachos.kernel.filesys;
 
 import nachos.Debug;
+import nachos.kernel.threads.SpinLock;
+import nachos.machine.CPU;
+import nachos.util.FIFOQueue;
+import nachos.util.Queue;
 
 /**
  * This is a class for managing an open Nachos file.  As in UNIX, a
@@ -49,7 +54,8 @@ class OpenFileReal implements OpenFile {
 
     /** Current position within the file. */
     private int seekPosition;
-
+    
+    
     /**
      * Open a Nachos file for reading and writing.  Bring the file header
      * into memory while the file is open.  This constructor is not public,
@@ -62,6 +68,7 @@ class OpenFileReal implements OpenFile {
     OpenFileReal(int sector, FileSystemReal filesystem) { 
 	hdr = new FileHeader(filesystem);
 	hdr.fetchFrom(sector);
+	FileSystemReal.fht.openFileHeader(hdr);
 	seekPosition = 0;
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
@@ -151,9 +158,10 @@ class OpenFileReal implements OpenFile {
 
 	// read in all the full and partial sectors that we need
 	buf = new byte[numSectors * diskSectorSize];
-	for (i = firstSector; i <= lastSector; i++)	
+	for (i = firstSector; i <= lastSector; i++){	
 	    filesystem.readSector(hdr.byteToSector(i * diskSectorSize), 
 		    buf, (i - firstSector) * diskSectorSize);
+	}
 
 	// copy the part we want
 	System.arraycopy(buf, (int)position - (firstSector * diskSectorSize),
@@ -182,7 +190,6 @@ class OpenFileReal implements OpenFile {
      *			read/written.
      */
     public int writeAt(byte from[], int index, int numBytes, long position) {
-
 	int fileLength = hdr.fileLength();
 	int i, firstSector, lastSector, numSectors;
 	boolean firstAligned, lastAligned;
@@ -216,7 +223,6 @@ class OpenFileReal implements OpenFile {
 	System.arraycopy(from, index, 
 		buf, (int)position - (firstSector * diskSectorSize), 
 		numBytes);
-
 	// write modified sectors back
 	for (i = firstSector; i <= lastSector; i++)	
 	    filesystem.writeSector(hdr.byteToSector(i * diskSectorSize), 
@@ -244,8 +250,10 @@ class OpenFileReal implements OpenFile {
     public int close() {
 	// If it is possible that we made changes to the FileHeader,
 	// it must be written back to the disk at this point.
+	FileSystemReal.fht.closeFileHeader(hdr);
 	hdr = null;  // Ensure further access fails.
 	return(1);
     }
+    
 
 }

@@ -124,7 +124,9 @@ public class Options {
     public int NUM_PORTS = 1;
     
     /** The types of disk devices on the system. */
+
     public Class<?>[] DISK_TYPES = new Class<?>[] {  Disk.class, Disk.class  };
+
 
     /** The number of disks on the system. */
     public int NUM_DISKS = DISK_TYPES.length;
@@ -181,6 +183,7 @@ public class Options {
     
     /** Should we run the network test? */
     public boolean NETWORK_TEST = false;
+
     
     /** FSCK */
     public boolean FSCK = false;
@@ -206,6 +209,7 @@ public class Options {
     
     /**How many threads to run*/
     public int THREADS_TO_RUN = 1;
+
     
     public Options(String[] args) {
 	argList = Arrays.asList(args);
@@ -337,6 +341,7 @@ public class Options {
 				DISK_FILE_NAME = (String)params[0];
 			    }
 			 }),
+
 		new Spec("-hrrn",  // set scheduling to hrrn
 			new Class[] {Integer.class},
 			"Usage: -hrrn <noft>",
@@ -416,6 +421,7 @@ public class Options {
 			    }
 			 }),
 		
+
 	});
     }
     

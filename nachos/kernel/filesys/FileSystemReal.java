@@ -1,12 +1,3 @@
-// FileSystemReal.java
-//	Class to manage the overall operation of the file system.
-//	Implements methods to map from textual file names to files.
-//
-// Copyright (c) 1992-1993 The Regents of the University of California.
-// Copyright (c) 1998 Rice University.
-// Copyright (c) 2003 State University of New York at Stony Brook.
-// All rights reserved.  See the COPYRIGHT file for copyright notice and 
-// limitation of liability and disclaimer of warranty provisions.
 
 package nachos.kernel.filesys;
 
