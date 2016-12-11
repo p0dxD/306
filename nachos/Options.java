@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.Disk;
 
 import java.util.Iterator;
@@ -206,6 +207,12 @@ public class Options {
     public boolean DISK_CSCAN = false;
     
     public boolean HW4_TEST = false;
+    
+    public boolean PAGING = false;
+    public boolean PARTONE = false;
+    public boolean PARTTWO = false;
+    public boolean PARTTHREE = false;
+    public boolean HW5TEST = false;
     
     /**How many threads to run*/
     public int THREADS_TO_RUN = 1;
@@ -398,6 +405,33 @@ public class Options {
 				if(((String)params[0]).equals("real")){
 				    FILESYS_REAL = true;
 				    FILESYS_STUB = false;
+				}
+				if(((String)params[1]).equals("cscan")){
+				    DISK_CSCAN = true;
+				}
+			    }
+			 }),
+		
+		new Spec("-fp",  // set scheduling to spn
+			new Class[] {String.class, String.class},
+			"Usage: -fs <type>",
+			 new Options.Action() {
+			    public void processOption(String flag, Object[] params) {
+				HW5TEST = true;
+				if(((String)params[0]).equals("part1")){
+				    PARTONE = true;
+				    FILESYS_REAL = false;
+				    FILESYS_STUB = true;
+				    
+				}else if(((String)params[0]).equals("part2")){
+				    PARTTWO = true;
+				    FILESYS_REAL = false;
+				    FILESYS_STUB = true;
+				}
+				else if(((String)params[0]).equals("part3")){
+				    FILESYS_REAL = true;
+				    FILESYS_STUB = false;
+				    PAGING = true;
 				}
 				if(((String)params[1]).equals("cscan")){
 				    DISK_CSCAN = true;

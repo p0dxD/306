@@ -267,7 +267,6 @@ public class AddrSpace {
 
 	        executable.seek(noffH.code.inFileAddr);
 //	        executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);//fix convert to physical
-	        System.out.println("noffH.code.inFileAddr " + noffH.code.inFileAddr +" Size " +noffH.code.size);
 	        int startIndexForPhysical = noffH.code.virtualAddr/Machine.PageSize;
 	        int endIndexOfPhysical = (int)Math.ceil(noffH.code.size/(double)Machine.PageSize)
 	        	+noffH.code.virtualAddr/Machine.PageSize;
@@ -363,7 +362,7 @@ public class AddrSpace {
        * @param pages to expand by
        */
       public void expandPageTable(int numPages){
-	  System.out.println("in here" + numPages);
+	  Debug.println('L', "Expanding vp table by " +numPages);
   	//get current pageTable
   	 TranslationEntry pageTable[] = this.getPageTable();
   	 TranslationEntry newPageTable[] = new TranslationEntry[pageTable.length+numPages];
@@ -395,6 +394,13 @@ public class AddrSpace {
        * @param physicalPage location
        */
       public void setPhysicalMemoryOfEntry(int vmPageNum,int physicalPage){
+	  Debug.println('L', "Setting physical memory for  vmPageNum " +vmPageNum +" on physical "+ physicalPage);
+//	  if(){
+	      //clear page otherwise
+	      MemManager.clearPhysPageIndex(physicalPage); 
+//	  }else{
+	      //get memory from paging
+//	  }
 	  pageTable[vmPageNum].physicalPage = physicalPage;
 	  pageTable[vmPageNum].valid = true;
       }

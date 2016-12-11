@@ -159,10 +159,12 @@ public class MemManager {
         
         lockPhysical.acquire();
         for(Integer i: physical){
+            if(i > 0){
   	  isTaken[i]--;
   	  if(isTaken[i]==0){
   	      clearPhysPageIndex(i);
   	  }
+        }
   	  
         }
         lockPhysical.release();
@@ -182,7 +184,6 @@ public class MemManager {
     public int getTotalPageSizeNeededForExpansion(int badAddress, AddrSpace space){
 	//get the current max size
 	int currentSize = space.getPageTableLength();
-	System.out.println("CurrentSize " + currentSize +" " + (int)Math.ceil(badAddress/Machine.PageSize));
 	//get the additional size to add 
 	int pages = (int)Math.ceil(badAddress/Machine.PageSize)-currentSize;
 
@@ -196,12 +197,20 @@ public class MemManager {
      * @return true on success, else false
      */
     public boolean givePhysicalMem(AddrSpace space, int page){
-	//o
+
+	Debug.println('L', "Trying to give physical to "+page);
 	int numOfPagesNeeded = 1;
     	lockMaping.acquire();
     	ArrayList<Integer> parentPhysicalSpots = maping.get(space.getSpaceId());
     	lockMaping.release();
-    	
+    	//i ahve to increase the location of physical array
+    	//because of the mess i made
+    	int increaseby = page - parentPhysicalSpots.size();
+    	if(increaseby > 0){
+    	    for(int i = 0; i < increaseby; i++){
+    		parentPhysicalSpots.add(-1);
+    	    }
+    	}
     	ArrayList<Integer> list = getPhysicalMemoryLocations(numOfPagesNeeded);
     	//we dont have any physical
     	if(list == null){
@@ -210,7 +219,7 @@ public class MemManager {
     	//make it valid and add physical mem
     	space.setPhysicalMemoryOfEntry(page, list.get(0));
     	//expand the arraylist 
-    	parentPhysicalSpots.add(list.get(0));
+    	parentPhysicalSpots.add(page,list.get(0));
     	//update table of physical locations
     	addPhysicalLocationForSpaceId(space.getSpaceId(), parentPhysicalSpots);
 	return true;
