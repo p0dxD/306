@@ -144,17 +144,11 @@ public class Nachos implements Runnable {
 		new ProgTest("test/part1",1);
 	    }else if(options.PARTTWO){
 		new ProgTest("test/malloc_test",1);
-	    }else if(options.PARTTWO){
+	    }else if(options.PARTTHREE){
 		
 	    }
 	}
-//	
-//	Debug.println('S', "Running HW 2 TEST");
-//	ExecTest.start();
-	
-	//test cases hw 1
-//	CalloutTest.start();
-//	SynchronousQueueTest.start();
+
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility
