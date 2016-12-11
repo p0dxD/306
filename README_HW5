@@ -1,0 +1,54 @@
+Jose Rodriguez 107927299
+Kathryn Blecher 108871623
+
+HW 5
+
+This homework testing was broken down into three parts for easier grading
+
+First can be tested with the following flags:
+-fp <which part> <type of scheduling for disk> -d L
+-fp is what triggers these test cases
+<which part> is the part of the homework, theres three options part1, part2, part3
+the debugging flag 'L' displays more information on what goes on kernel
+
+example of usage:
+	-fp part2 test -d L
+	-fp part1 fifo
+	-fp part1 test -d L
+second argument to -fp must be there, can be anything if testing part1 or part2
+PART ONE
+The first part uses a file to test the functionality of heap expansion
+the file testing this functionality is part1.c found within the test folder
+the executable used during testing has been included. 
+part1.c starts by trying to allocate something into the initial address
+this causes an a trap and the bad address is resolved within the exception handler
+the output can be seen in both places, the console and the nachos terminal.
+
+The following is a snipped of the console:
+4417	CPU0	system	on	[L] AddressErrorException triggered by program.
+4417	CPU0	system	on	[L] Bad address that caused AddressErrorException 2944
+4417	CPU0	system	on	[L] Pages needed to be extended 1
+4417	CPU0	system	on	[L] Expanding vp table by 1
+4418	CPU0	system	on	[L] PageFaultException triggered by program.
+4418	CPU0	system	on	[L] Bad address that caused PageFAultException 2944
+4418	CPU0	system	on	[L] Index of page to get physical memory for: 23
+4418	CPU0	system	on	[L] Trying to give physical to 23
+4418	CPU0	system	on	[L] Setting physical memory for  vmPageNum 23 on physical 23
+4870	CPU0	system	on	[L] Trying to write at 1464
+
+Some of the information displayed contains what causes the issue, the number of
+pages that the virtual memory should be expanded, the bad address that caused
+the exception, and the physical memory index page that is given in exchange. There
+is also a display on the Write that shows where in memory the information is being written
+to which can be compared to the bad address to match testing coditions.
+On the Nachos console, there is display of what is happeing and how the program is tested
+for example, it shows how the memory is being added to the address, how much memory is added
+to the adddress and the contents being put on memory, as well as being retrieved at the end
+to demosrate that it was placed correctly.
+Classes modified include MemManager.java, ExceptionHandler.java, AddrSpace.java
+
+PART TWO
+
+
+
+
