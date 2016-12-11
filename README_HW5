@@ -49,6 +49,69 @@ Classes modified include MemManager.java, ExceptionHandler.java, AddrSpace.java
 
 PART TWO
 
+            Format of a memory block
+    +------------------------------------+
+    |            64-bits wide            |
+    +------------------------------------+
 
+    +----------------+------------+------+    ------------
+    | Requested Size | Block Size | 000a |    Header Block
+    |     in bytes   |  in bytes  |      |
+    |     32bits     |   28bits   | 4bits|
+    +----------------+------------+------+    ------------
+    |                                    |    Content of
+    |         Payload and Padding        |    the payload
+    |           (N Memory Rows)          |
+    |                                    |
+    |                                    |
+    +---------------+-------------+------+    ------------
+    |     Unused    | Block Size  | 000a |    Footer Block
+    |               |  in bytes   |      |
+    +------------------------------------+    ------------
 
+The above drawing displays the way malloc was implemented. Contains various fields to keep track of blocks
+the implementation is of an explicit free list, there's three files assoaciated with it, malloc.c, malloc.h, 
+and malloc_test.c. The Makefile was modified to allow for an object to be created, running the following can
+build it: make malloc_test, an executable is included that was prebuild for testing. 
+
+NOTE: In case these fail due to make file, the contents of them can be found in mal.c and mal.h, 
+these can be compiled using supplied Makefile without needing to modify it, mal.c contains the main. 
+
+example of usage:
+	-fp part2 test
+	-fp part2 test -d L
+When testing this file the following output is to be expected with flag L: 
+
+6428	CPU0	system	on	[L] Setting physical memory for  vmPageNum 84 on physical 84
+6460	CPU0	system	on	[L] AddressErrorException triggered by program.
+6460	CPU0	system	on	[L] Bad address that caused AddressErrorException 10880
+6460	CPU0	system	on	[L] Pages needed to be extended 1
+6460	CPU0	system	on	[L] Expanding vp table by 1
+6462	CPU0	system	on	[L] PageFaultException triggered by program.
+6462	CPU0	system	on	[L] Bad address that caused PageFAultException 10880
+6462	CPU0	system	on	[L] Index of page to get physical memory for: 85
+6462	CPU0	system	on	[L] Trying to give physical to 85
+6462	CPU0	system	on	[L] Setting physical memory for  vmPageNum 85 on physical 85
+6680	CPU0	system	on	[L] AddressErrorException triggered by program.
+6680	CPU0	system	on	[L] Bad address that caused AddressErrorException 11136
+6680	CPU0	system	on	[L] Pages needed to be extended 2
+6680	CPU0	system	on	[L] Expanding vp table by 2
+6681	CPU0	system	on	[L] PageFaultException triggered by program.
+6681	CPU0	system	on	[L] Bad address that caused PageFAultException 11136
+6681	CPU0	system	on	[L] Index of page to get physical memory for: 87
+6681	CPU0	system	on	[L] Trying to give physical to 87
+6681	CPU0	system	on	[L] Setting physical memory for  vmPageNum 87 on physical 86
+7541	CPU0	system	on	[L] Trying to write at 8928
+10629	CPU0	system	on	[L] Trying to write at 8924
+10715	CPU0	system	on	[L] Trying to write at 8920
+
+This should be the exact same as the previous part, except with different numbers,
+exception is triggered, pages are allocated, physical page is given if available.
+In the Nachos console itself, there is a different output that demostrates malloc and free
+the line on top of each test case shows what is being tested. Followed by the starting address
+of the data (of that returned by malloc). Then data is put into that location to desmostrate
+that it does have the physical area, then it prints it. Also the number of free blocks are displayed
+as we free the blocks. 
+
+PART THREE
 

@@ -459,7 +459,7 @@ static int extend_by(int block_size){
   }
 
 }
-/****************************For debugging **************************************************************/
+/****************************Functions For debugging **************************************************************/
 void press_to_cont(){
 Write("\r\nPress Enter to Continue\r\n",26,1);
 	char test[1];
@@ -470,17 +470,6 @@ Write("\r\nPress Enter to Continue\r\n",26,1);
 	
 	Write("\r\n",2,1);
 }
-
-
-#define check_prim_contents(actual_value, expected_value, fmt_spec, name) do { \
-    if (*(actual_value) != (expected_value)) { \
-        error("Expected " name " to be " fmt_spec " but got " fmt_spec "\n", (expected_value), *(actual_value)); \
-        error("Aborting...\n"); \
-        assert(false); \
-    } else { \
-        success(name " retained the value of " fmt_spec " after assignment\n", (expected_value)); \
-    } \
-} while(0)
 
 char* itoa(int i, char b[]){
     char const digit[] = "0123456789";
@@ -510,7 +499,7 @@ int strlen(char *arg){
 }
 
 /*Prints a number to screen*/
-int print_num(void *num){
+int print_n(void *num){
 	char value[32];//max num for an int
 	itoa((int)num,value);
 	Write(value,strlen(value),1);
@@ -532,49 +521,164 @@ int numb_of_free_blocks(){
 	}
 	return i;
 }
-/***************************Testing **************************************************************/
 
-int main(){
+void display_message(char *message){
+	Write(message,strlen(message),1);
+}
+
+void display_message_of_free_block_available(){
 	char *message_blocks = "\r\nNumber of free blocks: ";
-	
-	Write("=== Test1: Allocation test ===\n",31,1);
+	display_message(message_blocks);
+	print_int_num(numb_of_free_blocks());
 	Write("\r",1,1);
-	void *memory = sf_malloc(128);
-	print_num(memory);
+}
+
+void new_line(){
+	Write("\n",1,1);
+	Write("\r",1,1);
+}
+
+void print_memory_start_loc(){
+	display_message("Printing memory start location:");
+}
+/****main****/
+int main(){
+
+	display_message("=== Test1: Allocation test ===");
+	new_line();
+	display_message("About to malloc for 128");
+	new_line();
+	void *memory = malloc(128);
+	print_memory_start_loc();
+	new_line();
+	print_n(memory);
+	new_line();
 	((char *)memory)[0] = 't';
 	((char *)memory)[1] = 'e';
 	((char *)memory)[2] = 's';
 	((char *)memory)[3] = 't';
-	
-	Write(memory,4,1);
-	//sf_free(memory);
+	((char *)memory)[4] = '1';
+	((char *)memory)[5] = '\0';
+	display_message("Displaying the contents stored");
+	new_line();
+	display_message(memory);
+	new_line();
 	//display message of blocks
-	Write(message_blocks,strlen(message_blocks),1);
-	print_int_num(numb_of_free_blocks());
-	
-	Write("\r",1,1);
-    Write("\r\ntest1 done.\r\n",13,1);
+	display_message_of_free_block_available();
+    display_message("\r\ntest1 done.\r\n");
     press_to_cont();
     
-    
-    Write("=== Test2: Allocation test ===\n",31,1);
-	Write("\r",1,1);
-	void *memory2 = sf_malloc(50);
-	print_num(memory2);
+    display_message("=== Test2: Allocation test ===");
+	new_line();
+	display_message("About to malloc for 500");
+	new_line();
+	void *memory2 = malloc(500);
+	print_memory_start_loc();
+	new_line();
+	print_n(memory2);
+	new_line();
 	((char *)memory2)[0] = 't';
 	((char *)memory2)[1] = 'e';
 	((char *)memory2)[2] = 's';
 	((char *)memory2)[3] = 't';
 	((char *)memory2)[4] = '2';
-	
-	Write(memory2,5,1);
-    //sf_free(memory2);
-    Write("\r\ntest2 done.\r\n",13,1);
+	((char *)memory2)[5] = '\0';
+	display_message("Displaying the contents stored");
+	new_line();
+	display_message(memory);
+	new_line();
+	//display message of blocks
+	display_message_of_free_block_available();
+    display_message("\r\ntest2 done.\r\n");
     press_to_cont();
-   
-   	sf_free(memory);
-   	Write(message_blocks,strlen(message_blocks),1);
-	print_int_num(numb_of_free_blocks());
+    
+    display_message("=== Test4: Free test ===");
+	new_line();
+   	display_message("Freeing first block.");
+   	new_line();
+   	free(memory);
+	display_message_of_free_block_available();
+	new_line();
+	press_to_cont();
+	display_message("Freeing second block.");
+	new_line();
+   	free(memory2);
+   	display_message_of_free_block_available();
+   	new_line();
+   	
+   	
+   	display_message("=== Test5: Allocation test ===");
+	new_line();
+	display_message("About to malloc for 2000");
+	new_line();
+	memory = malloc(2000);
+	print_memory_start_loc();
+	new_line();
+	print_n(memory);
+	new_line();
+	((char *)memory)[0] = 't';
+	((char *)memory)[1] = 'e';
+	((char *)memory)[2] = 's';
+	((char *)memory)[3] = 't';
+	((char *)memory)[4] = '3';
+	((char *)memory)[5] = '\0';
+	display_message("Displaying the contents stored");
+	new_line();
+	display_message(memory);
+	new_line();
+	//display message of blocks
+	display_message_of_free_block_available();
+    display_message("\r\ntest3 done.\r\n");
+    press_to_cont();
+    
+    display_message("=== Test4: Allocation and free test ===");
+	new_line();
+   	display_message("About to malloc for 200");
+	new_line();
+	memory2 = malloc(200);
+	print_memory_start_loc();
+	new_line();
+	print_n(memory2);
+	new_line();
+   	
+   	display_message("About to malloc for 400");
+	new_line();
+	void *memory3 = malloc(400);
+	print_memory_start_loc();
+	new_line();
+	print_n(memory3);
+	new_line();
+   	
+   	display_message("About to malloc for 150");
+	new_line();
+	void *memory4 = malloc(150);
+	print_memory_start_loc();
+	new_line();
+	print_n(memory4);
+	new_line();
+   	display_message_of_free_block_available();
+   	new_line();
+   	
+   	display_message("Freeing second block (400 one).");
+   	free(memory3);
+   	new_line();
+   	display_message_of_free_block_available();
+	new_line();
+	
+	display_message("Freeing first block (200 one).");
+   	free(memory2);
+   	new_line();
+   	display_message_of_free_block_available();
+	new_line();
+	
+	display_message("Freeing third block (150 one).");
+   	free(memory4);
+   	new_line();
+   	display_message_of_free_block_available();
+	new_line();
 	
 	
+	display_message("Process will terminate on next enter.\r\n");
+	press_to_cont();
+	Halt();
 }
