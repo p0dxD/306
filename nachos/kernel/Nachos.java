@@ -107,7 +107,6 @@ public class Nachos implements Runnable {
 
 	if(options.FILESYS_STUB || options.FILESYS_REAL){
 	    fileSystem = FileSystem.init(diskDriver);
-	    paging = new Paging(diskCache);
 	}
 	
 	//initialize paging if asked for
@@ -145,7 +144,7 @@ public class Nachos implements Runnable {
 	    }else if(options.PARTTWO){
 		new ProgTest("test/malloc_test",1);
 	    }else if(options.PARTTHREE){
-		
+		new ProgTest("test",1);
 	    }
 	}
 

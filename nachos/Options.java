@@ -213,7 +213,6 @@ public class Options {
     public boolean PARTTWO = false;
     public boolean PARTTHREE = false;
     public boolean HW5TEST = false;
-    
     /**How many threads to run*/
     public int THREADS_TO_RUN = 1;
 
@@ -429,8 +428,9 @@ public class Options {
 				    FILESYS_STUB = true;
 				}
 				else if(((String)params[0]).equals("part3")){
-				    FILESYS_REAL = true;
-				    FILESYS_STUB = false;
+				    PARTTHREE = true;
+				    FILESYS_REAL = false;
+				    FILESYS_STUB = true;
 				    PAGING = true;
 				}
 				if(((String)params[1]).equals("cscan")){

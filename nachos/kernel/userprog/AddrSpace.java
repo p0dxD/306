@@ -395,12 +395,18 @@ public class AddrSpace {
        */
       public void setPhysicalMemoryOfEntry(int vmPageNum,int physicalPage){
 	  Debug.println('L', "Setting physical memory for  vmPageNum " +vmPageNum +" on physical "+ physicalPage);
-//	  if(){
-	      //clear page otherwise
-	      MemManager.clearPhysPageIndex(physicalPage); 
-//	  }else{
+	  if(Nachos.options.PARTTHREE){
+	      if(Nachos.paging.isInSwap(this.SpaceId)){
+		      //clear page otherwise
+		      MemManager.clearPhysPageIndex(physicalPage);   
+	      }
+	  else{
 	      //get memory from paging
-//	  }
+	      Nachos.paging.getPages(vmPageNum);
+	  }
+	  }
+	  if(Nachos.options.PARTONE||Nachos.options.PARTTWO)
+	      MemManager.clearPhysPageIndex(physicalPage);
 	  pageTable[vmPageNum].physicalPage = physicalPage;
 	  pageTable[vmPageNum].valid = true;
       }

@@ -27,9 +27,14 @@ public class Paging {
     /**Contains the sectors with the DiskAddressMapping*/
     HashMap<DiskAddressMapping, Integer> swapMap = new HashMap<>();
     
+    
+    HashMap<Integer, DiskAddressMapping> diskMap = new HashMap<>();
+    
+    
     /*Locks*/
     private Lock physicalSectorsExtendedLock;
     private Lock swapMapLock;
+    private Lock diskMapLock;
     
     /**map of sectors to entries*/
     ArrayList<swapMapEntry> mappingList;
@@ -44,7 +49,7 @@ public class Paging {
 	    diskSectorSize = diskCache.getSectorSize();
 	    physicalSectorsExtendedLock = new Lock("Lock for adding physical pages");
 	    swapMapLock= new Lock("SwapMap Lock");
-	    
+	    diskMapLock = new Lock("DISKLOCK");
 	    sectors = new int[numDiskSectors];
 	    //zero them out, not being used
 	    for(int i =0; i < numDiskSectors; i++){
@@ -91,8 +96,16 @@ public class Paging {
 	}
 	    
     }
-	
+    
+    public void addToReference(int SpaceID,DiskAddressMapping map){
+	Debug.println('L', "Adding page reference.");
+	diskMapLock.acquire();
+	diskMap.put(SpaceID, map);
+	diskMapLock.release();
+    }
+    
     public void addToMapping(DiskAddressMapping map){
+	Debug.println('L', "Adding page mapping.");
 	physicalSectorsExtendedLock.acquire();
 	physicalSectorsExtended.add(map);
 	physicalSectorsExtendedLock.release();
@@ -104,7 +117,14 @@ public class Paging {
      * @param map 
      * @return
      */
-    public boolean isInSwap(DiskAddressMapping map){
+    public boolean isInSwap(int SpaceID){
+	Debug.println('L', "Checking to see if reference is contain of mapping");
+	diskMapLock.acquire();
+	DiskAddressMapping map = diskMap.get(SpaceID);
+	diskMapLock.release();
+	if(map==null){
+	    return false;
+	}
 	swapMapLock.acquire();
 	boolean contains = swapMap.containsKey(map);
 	swapMapLock.release();

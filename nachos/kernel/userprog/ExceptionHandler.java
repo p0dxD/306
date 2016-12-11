@@ -142,8 +142,13 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    //get physical memory
 	    int index = memManager.getIndexOfVirtualAtAddress(badAddress);
 	    Debug.println('L', "Index of page to get physical memory for: " + index);
+	    if(Nachos.options.PARTTHREE){
+		DiskAddressMapping map = new DiskAddressMapping(space.getSpaceId(),index);
+		Nachos.paging.addToReference(space.getSpaceId(),map);
+		Nachos.paging.addToMapping(map);
+	    }
+	   
 	    memManager.givePhysicalMem(space, index);
-	    //Debug.ASSERT(false);
 	    return;
 	}else if(which == MachineException.IllegalInstrException){
 	    System.out.println("IllegalInstrException");

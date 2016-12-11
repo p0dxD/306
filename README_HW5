@@ -115,6 +115,19 @@ as we free the blocks.
 
 PART THREE
 
+For this part additional options are set when program starts, the nachos filesystem is started with this one
+in order to test output the files should be copied over using the -cp <from> <name>, then inside nachos the following
+line can be modified depending on the file that was copied 
+line 147, in the included disk the file has been added for testing. filename is 'test'
+
+	    }else if(options.PARTTHREE){
+			new ProgTest("test",1);
+	    }
+	    
+example of usage:
+	-fp part3 test 
+	-fp part3 test -d L
+	
 This part we created an additional driver for the OS by adding another Disk.class. We made our
 initialization of it in the Paging class. The paging in this part references the swapEntry and swapMapEntry
 in which swapEntry hold the vpn and pageID and the swapMapEntry holds the swapEntry and the sector
@@ -122,3 +135,19 @@ number of the page. The swapMapEntries are then saved in an ArrayList in the Pag
 class also uses a FIFO page eviction policy in which pages are stored starting at sector 0, and 
 the evictionID is initialized to 0. When a page needs to be evicted for another, it starts at 0, then
 the evictionID is incremented to push out the following page when needed.
+the output looks similar to the following:
+
+4418	CPU0	system	on	[L] Bad address that caused PageFAultException 2944
+4418	CPU0	system	on	[L] Index of page to get physical memory for: 23
+4418	CPU0	system	on	[L] Adding page reference.
+4420	CPU0	system	on	[L] Adding page mapping.
+4422	CPU0	system	on	[L] Trying to give physical to 23
+4422	CPU0	system	on	[L] Setting physical memory for  vmPageNum 23 on physical 23
+4422	CPU0	system	on	[L] Checking to see if reference is contain of mapping
+4878	CPU0	system	on	[L] Trying to write at 1464
+8261	CPU0	system	on	[L] Trying to write at 2944
+
+additional information for refering to the mapping and the addition to the mapping is included
+if the mapping does not contain a referance it clears memory else it will fetch given the 
+spaceID and vpn, the output is similar to the other ones. Additional classes include DiskAddressMapping.java under userprog,
+and Paging.java same directory, which gets initialized when nachos starts
