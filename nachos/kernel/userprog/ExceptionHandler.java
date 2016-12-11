@@ -84,6 +84,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Debug.println('S', "Read syscall triggered.");
 		int a = CPU.readRegister(4);
 		int b = CPU.readRegister(5);
+		Debug.print('L', "Trying to write at " + a);
 		byte c[] = new byte[b];
 		 space = ((UserThread)NachosThread.currentThread()).space;
 
@@ -98,7 +99,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Debug.println('S', "Write syscall triggered.");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
-		System.out.println("POINTER " + ptr +" in WRITE");
+		Debug.println('L', "Trying to write at " + ptr);
 		byte buf[] = new byte[len];
 		memManager.getCharsFromMemory(ptr, ((UserThread)NachosThread.currentThread()).space, len, buf);
 		Syscall.write(buf, len, CPU.readRegister(6));
@@ -135,11 +136,12 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		    CPU.readRegister(MIPS.NextPCReg)+4);
 	    return;
 	}else if(which == MachineException.PageFaultException){
-	    System.out.println("PageFaultException");
+	    Debug.println('L', "PageFaultException triggered by program.");
 	    int badAddress = CPU.readRegister(MIPS.BadVAddrReg);
+	    Debug.println('L', "Bad address that caused PageFAultException "+ badAddress);
 	    //get physical memory
 	    int index = memManager.getIndexOfVirtualAtAddress(badAddress);
-	    System.out.println("Should be 13 =? "+index);
+	    Debug.println('L', "Index of page to get physical memory for: " + index);
 	    memManager.givePhysicalMem(space, index);
 	    //Debug.ASSERT(false);
 	    return;
@@ -154,11 +156,12 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	}else if(which == MachineException.SyscallException){
 	    System.out.println("SyscallException");
 	}else if(which == MachineException.AddressErrorException){
-	    System.out.println("AddressErrorException");
+	    Debug.println('L', "AddressErrorException triggered by program.");
 	    int badAddress = CPU.readRegister(MIPS.BadVAddrReg);
 	    //get the #of pages needed
 	    int numPages = memManager.getTotalPageSizeNeededForExpansion(badAddress, space);
-	    System.out.println("num of pages needed " + numPages + badAddress);
+	    Debug.println('L', "Bad address that caused AddressErrorException "+ badAddress);
+	    Debug.println('L', "Pages needed to be extended "+ numPages);
 	    //expand with additional vm
 	    space.expandPageTable(numPages);
 

@@ -76,6 +76,7 @@ public class Nachos implements Runnable {
     /** Access to serial ports. */
     public static SerialDriver serialDriver;
 
+    
     /**
      * 	Nachos initialization -- performed by first Nachos thread.
      *	Initialize various subsystems, depending on configuration options.
@@ -108,7 +109,11 @@ public class Nachos implements Runnable {
 	    fileSystem = FileSystem.init(diskDriver);
 	    paging = new Paging(diskCache);
 	}
-
+	
+	//initialize paging if asked for
+	if(options.PAGING){
+	    paging = new Paging(diskCache);
+	}
 	// Do per-CPU initialization:  Before we can run user programs,
 	// we need to set an exception handler on each CPU to handle
 	// exceptions (traps) from user mode.
@@ -134,6 +139,15 @@ public class Nachos implements Runnable {
 	    NetworkTest.start();
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
+	if(options.HW5TEST){
+	    if(options.PARTONE){
+		new ProgTest("test/part1",1);
+	    }else if(options.PARTTWO){
+		new ProgTest("test/malloc_test",1);
+	    }else if(options.PARTTWO){
+		
+	    }
+	}
 //	
 //	Debug.println('S', "Running HW 2 TEST");
 //	ExecTest.start();
