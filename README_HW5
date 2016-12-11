@@ -115,3 +115,10 @@ as we free the blocks.
 
 PART THREE
 
+This part we created an additional driver for the OS by adding another Disk.class. We made our
+initialization of it in the Paging class. The paging in this part references the swapEntry and swapMapEntry
+in which swapEntry hold the vpn and pageID and the swapMapEntry holds the swapEntry and the sector
+number of the page. The swapMapEntries are then saved in an ArrayList in the Paging class for reference. The Paging
+class also uses a FIFO page eviction policy in which pages are stored starting at sector 0, and 
+the evictionID is initialized to 0. When a page needs to be evicted for another, it starts at 0, then
+the evictionID is incremented to push out the following page when needed.

@@ -78,6 +78,8 @@ public class Paging {
 		pageEntries[position] = evictionID;
 		evictionID++;
 		position++;
+		if (evictionID == numDiskSectors)
+		    evictionID = 0;
 	    }
 	}
 	// clear memory of sectors
